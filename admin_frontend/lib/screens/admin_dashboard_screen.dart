@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:admin_frontend/screens/grant_detail_screen.dart';
 import '../theme/app_theme.dart';
 import '../models/grant.dart';
+import '../models/organization.dart';
 import 'package:admin_frontend/screens/admin_login_screen.dart';
 import 'package:admin_frontend/services/auth_services.dart';
 import 'package:admin_frontend/services/grant_service.dart';
@@ -17,41 +18,66 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _selectedTab = 0;
-  List<Grant> _grants = [];
   List<Grant> _verifiedGrants = [];
   List<Grant> _unverifiedGrants = [];
+  List<Organization> _organizations = [];
   bool _isLoading = true;
   final GrantService _grantService = GrantService();
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
-    _fetchGrants();
+    _refreshData();
+  }
+
+  Future<void> _refreshData() async {
+    setState(() => _isLoading = true);
+    try {
+      if (_selectedTab == 0 || _selectedTab == 1) {
+        await _fetchGrants();
+      } else {
+        await _fetchOrganizations();
+      }
+    } catch (e) {
+      _showError('Error refreshing data: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _fetchGrants() async {
-    setState(() => _isLoading = true);
     try {
-      // Use admin method to get all grants including unverified ones
       final grants = await _grantService.getAllGrantsAdmin();
-      print("DEBUG: Fetched ${grants.length} grants total");
-      print("DEBUG: Verified: ${grants.where((g) => g.isVerified).length}");
-      print("DEBUG: Unverified: ${grants.where((g) => !g.isVerified).length}");
-      
-      setState(() {
-        _grants = grants;
-        _verifiedGrants = grants.where((g) => g.isVerified).toList();
-        _unverifiedGrants = grants.where((g) => !g.isVerified).toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      print("DEBUG: Error fetching grants: $e");
-      setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading grants: $e')),
-        );
+        setState(() {
+          _verifiedGrants = grants.where((g) => g.isVerified).toList();
+          _unverifiedGrants = grants.where((g) => !g.isVerified).toList();
+        });
       }
+    } catch (e) {
+      _showError('Error loading grants: $e');
+    }
+  }
+
+  Future<void> _fetchOrganizations() async {
+    try {
+      final orgData = await _authService.getOrganizations();
+      if (mounted) {
+        setState(() {
+          _organizations = orgData.map((e) => Organization.fromJson(e)).toList();
+        });
+      }
+    } catch (e) {
+      _showError('Error loading organizations: $e');
+    }
+  }
+
+  void _showError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: AppTheme.error),
+      );
     }
   }
 
@@ -68,7 +94,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // Close dialog
+              Navigator.pop(context);
               await AuthService().logout();
               if (mounted) {
                 Navigator.pushAndRemoveUntil(
@@ -91,73 +117,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       context,
       MaterialPageRoute(builder: (context) => GrantEditorScreen(grant: grant)),
     );
-    
-    // Refresh if grant was saved (result == true)
     if (result == true) {
-      _fetchGrants();
-    }
-  }
-
-  Future<void> _importFromGrantsGov() async {
-    // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Import from Grants.gov'),
-        content: const Text('This will download and import grants from Grants.gov. This may take a few minutes. Continue?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Import'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    // Show progress dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Importing grants from Grants.gov...'),
-            SizedBox(height: 8),
-            Text('This may take a few minutes', style: TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        ),
-      ),
-    );
-
-    try {
-      await _grantService.importFromGrantsGov();
-      
-      if (mounted) {
-        Navigator.pop(context); // Close progress dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Grants imported successfully!'),
-            backgroundColor: AppTheme.success,
-          ),
-        );
-        _fetchGrants(); // Refresh the list
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context); // Close progress dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Import failed: $e'),
-            backgroundColor: AppTheme.error,
-          ),
-        );
-      }
+      _refreshData();
     }
   }
 
@@ -181,13 +142,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (confirmed == true) {
       try {
         await _grantService.deleteGrant(id);
-        _fetchGrants();
+        _refreshData();
       } catch (e) {
-         if(mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error deleting grant: $e')),
-            );
-         }
+        _showError('Error deleting grant: $e');
       }
     }
   }
@@ -206,27 +163,41 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         description: grant.description,
         eligibilityCriteria: grant.eligibilityCriteria,
         requiredDocuments: grant.requiredDocuments,
-        isVerified: true, // Set to true
+        isVerified: true,
         isUrgent: grant.isUrgent,
         imageUrl: grant.imageUrl,
         applyUrl: grant.applyUrl,
       );
 
       await _grantService.updateGrant(updatedGrant);
-      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Grant verified successfully!'), backgroundColor: AppTheme.success),
         );
-        _fetchGrants(); // Refresh list
+        _refreshData();
       }
     } catch (e) {
+      _showError('Error verifying grant: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateOrgStatus(Organization org, String status) async {
+    setState(() => _isLoading = true);
+    try {
+      await _authService.updateOrganizationStatus(org.id, status);
       if (mounted) {
-        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error verifying grant: $e'), backgroundColor: AppTheme.error),
+          SnackBar(
+            content: Text('Organization ${status == 'approved' ? 'approved' : 'rejected'} successfully!'),
+            backgroundColor: status == 'approved' ? AppTheme.success : AppTheme.error,
+          ),
         );
+        _refreshData();
       }
+    } catch (e) {
+      _showError('Error updating organization: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -237,16 +208,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header with slate gradient
+            // Header
             Container(
               decoration: const BoxDecoration(
                 gradient: AppTheme.adminGradient,
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
+                  BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2)),
                 ],
               ),
               padding: const EdgeInsets.all(AppConstants.paddingMedium),
@@ -258,7 +225,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: AppTheme.white.withValues(alpha: 0.2),
+                          color: Colors.white.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.admin_panel_settings, color: AppTheme.white),
@@ -270,23 +237,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           children: [
                             Text(
                               'Admin Dashboard',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.white,
-                              ),
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.white),
                             ),
-                            Text(
-                              'Manage grants',
-                              style: TextStyle(fontSize: 12, color: AppTheme.white),
-                            ),
+                            Text('Administrative Control Panel', style: TextStyle(fontSize: 12, color: AppTheme.white)),
                           ],
                         ),
-                      ),
-                      IconButton(
-                        onPressed: _importFromGrantsGov,
-                        icon: const Icon(Icons.cloud_download, color: AppTheme.white),
-                        tooltip: 'Import from Grants.gov',
                       ),
                       IconButton(
                         onPressed: _logout,
@@ -307,12 +262,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           value: '${_verifiedGrants.length}',
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: _StatCard(
                           icon: Icons.pending,
                           label: 'Unverified',
                           value: '${_unverifiedGrants.length}',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _StatCard(
+                          icon: Icons.business,
+                          label: 'Organizations',
+                          value: '${_organizations.length}',
                         ),
                       ),
                     ],
@@ -323,25 +286,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             
             // Tab Bar
             Container(
-              color: AppTheme.white,
+              decoration: BoxDecoration(
+                color: AppTheme.white,
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2)),
+                ],
+              ),
               child: Row(
                 children: [
-                  Expanded(
-                    child: _TabButton(
-                      label: 'Verified Grants',
-                      icon: Icons.verified,
-                      isSelected: _selectedTab == 0,
-                      onTap: () => setState(() => _selectedTab = 0),
-                    ),
-                  ),
-                  Expanded(
-                    child: _TabButton(
-                      label: 'Unverified Grants',
-                      icon: Icons.pending,
-                      isSelected: _selectedTab == 1,
-                      onTap: () => setState(() => _selectedTab = 1),
-                    ),
-                  ),
+                  _buildTab(0, 'Verified', Icons.verified_user_rounded),
+                  _buildTab(1, 'Unverified', Icons.pending_rounded),
+                  _buildTab(2, 'Organizations', Icons.business_rounded),
                 ],
               ),
             ),
@@ -350,31 +305,77 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             Expanded(
               child: _isLoading 
                 ? const Center(child: CircularProgressIndicator())
-                : _selectedTab == 0 
-                    ? _GrantsTab(
+                : IndexedStack(
+                    index: _selectedTab,
+                    children: [
+                      _GrantsTab(
                         grants: _verifiedGrants, 
                         onEdit: _showGrantEditor,
                         onDelete: _deleteGrant,
-                        onRefresh: _fetchGrants
-                      ) 
-                    : _GrantsTab(
+                        onRefresh: _refreshData
+                      ),
+                      _GrantsTab(
                         grants: _unverifiedGrants, 
                         onEdit: _showGrantEditor,
                         onDelete: _deleteGrant,
-                        onVerify: _verifyGrant, // Pass verify callback
-                        onRefresh: _fetchGrants
+                        onVerify: _verifyGrant,
+                        onRefresh: _refreshData
                       ),
+                      _OrganizationsTab(
+                        organizations: _organizations,
+                        onStatusUpdate: _updateOrgStatus,
+                        onRefresh: _refreshData,
+                      ),
+                    ],
+                  ),
             ),
           ],
         ),
       ),
-      
-      // Floating Action Button
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: _selectedTab != 2 ? FloatingActionButton.extended(
         onPressed: () => _showGrantEditor(null),
-        backgroundColor: AppTheme.slateGray,
+        backgroundColor: AppTheme.secondaryColor,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Add Grant', style: TextStyle(color: Colors.white)),
+      ) : null,
+    );
+  }
+
+  Widget _buildTab(int index, String label, IconData icon) {
+    bool isSelected = _selectedTab == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() => _selectedTab = index);
+          _refreshData();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                width: 3,
+              ),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: isSelected ? AppTheme.primaryColor : AppTheme.mediumGray, size: 22),
+              const SizedBox(height: 4),
+              Text(
+                label.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? AppTheme.primaryColor : AppTheme.mediumGray,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -390,60 +391,19 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: AppTheme.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
-        border: Border.all(color: AppTheme.white.withValues(alpha: 0.3)),
+        color: Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
       ),
       child: Column(
         children: [
-          Icon(icon, color: AppTheme.white, size: 24),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.white)),
-          Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.white)),
+          Icon(icon, color: AppTheme.white, size: 20),
+          const SizedBox(height: 6),
+          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.white)),
+          Text(label, style: TextStyle(fontSize: 10, color: AppTheme.white.withOpacity(0.8)), overflow: TextOverflow.ellipsis),
         ],
-      ),
-    );
-  }
-}
-
-class _TabButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _TabButton({required this.label, required this.icon, required this.isSelected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isSelected ? AppTheme.slateGray : Colors.transparent,
-              width: 3,
-            ),
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: isSelected ? AppTheme.slateGray : AppTheme.mediumGray),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? AppTheme.slateGray : AppTheme.mediumGray,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -471,10 +431,14 @@ class _GrantsTab extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.inbox_outlined, size: 48, color: Colors.grey),
+            Icon(Icons.description_outlined, size: 64, color: AppTheme.mediumGray.withOpacity(0.3)),
             const SizedBox(height: 16),
-            const Text('No grants found'),
-             TextButton(onPressed: onRefresh, child: const Text("Refresh"))
+            const Text('No grants found', style: TextStyle(fontSize: 16, color: AppTheme.mediumGray)),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: onRefresh, 
+              child: const Text("REFRESH NOW", style: TextStyle(fontWeight: FontWeight.bold)),
+            )
           ],
         ),
       );
@@ -483,101 +447,192 @@ class _GrantsTab extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: () async => onRefresh(),
       child: ListView.builder(
-        padding: const EdgeInsets.all(AppConstants.paddingMedium),
+        padding: const EdgeInsets.all(16),
         itemCount: grants.length,
         itemBuilder: (context, index) {
           final grant = grants[index];
           return Container(
-            margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
-            decoration: AppTheme.cardDecoration,
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const GrantDetailScreen(),
-                    settings: RouteSettings(arguments: grant),
-                  ),
-                );
-              },
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(AppConstants.paddingMedium),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.black.withOpacity(0.05)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+              ],
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               leading: Container(
-                width: 48,
-                height: 48,
+                width: 50, height: 50,
                 decoration: BoxDecoration(
-                  gradient: AppTheme.adminGradient,
-                  borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.description, color: AppTheme.white),
+                child: const Icon(Icons.description_rounded, color: AppTheme.primaryColor),
               ),
-              title: Text(
-                grant.title,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              title: Text(grant.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Text("${grant.organizer}\nDeadline: ${grant.formattedDeadline}", style: const TextStyle(fontSize: 12)),
               ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 4),
-                  Text("Provider: ${grant.organizer}"),
-                  Text("Deadline: ${grant.formattedDeadline}"),
-                   Text("Amount: ${grant.amount}", style: const TextStyle(color: AppTheme.success, fontWeight: FontWeight.bold)),
-                ],
-              ),
+              isThreeLine: true,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (!grant.isVerified && onVerify != null)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ElevatedButton.icon(
-                        onPressed: () => onVerify!(grant),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.success,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          minimumSize: const Size(0, 36),
-                        ),
-                        icon: const Icon(Icons.check, size: 16),
-                        label: const Text('Verify'),
-                      ),
+                  if (onVerify != null)
+                    IconButton(
+                      icon: const Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 28),
+                      onPressed: () => onVerify!(grant),
+                      tooltip: 'Verify Grant',
                     ),
                   PopupMenuButton(
-                    icon: const Icon(Icons.more_vert),
+                    icon: const Icon(Icons.more_vert_rounded),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20, color: AppTheme.error),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: AppTheme.error)),
-                          ],
-                        ),
-                      ),
+                      const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_rounded, size: 18), SizedBox(width: 8), Text('Edit')])),
+                      const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_rounded, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
                     ],
-                    onSelected: (value) {
-                      if (value == 'edit') onEdit(grant);
-                      if (value == 'delete') onDelete(grant.id);
+                    onSelected: (val) {
+                      if (val == 'edit') onEdit(grant);
+                      if (val == 'delete') onDelete(grant.id);
                     },
                   ),
                 ],
               ),
             ),
-          ),
           );
         },
       ),
     );
+  }
+}
+
+class _OrganizationsTab extends StatelessWidget {
+  final List<Organization> organizations;
+  final Function(Organization, String) onStatusUpdate;
+  final VoidCallback onRefresh;
+
+  const _OrganizationsTab({
+    required this.organizations,
+    required this.onStatusUpdate,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (organizations.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.business_outlined, size: 64, color: AppTheme.mediumGray.withOpacity(0.3)),
+            const SizedBox(height: 16),
+            const Text('No organizations found', style: TextStyle(fontSize: 16, color: AppTheme.mediumGray)),
+            TextButton(onPressed: onRefresh, child: const Text("REFRESH NOW")),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => onRefresh(),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: organizations.length,
+        itemBuilder: (context, index) {
+          final org = organizations[index];
+          final statusColor = _getStatusColor(org.status);
+          
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.black.withOpacity(0.05)),
+            ),
+            child: ExpansionTile(
+              shape: const RoundedRectangleBorder(side: BorderSide.none),
+              collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
+              leading: CircleAvatar(
+                backgroundColor: statusColor.withOpacity(0.1),
+                child: Icon(Icons.business_rounded, color: statusColor, size: 20),
+              ),
+              title: Text(org.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              subtitle: Text(org.status.toUpperCase(), style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5)),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(),
+                      if (org.description != null) ...[
+                        const Text("DESCRIPTION", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.mediumGray)),
+                        const SizedBox(height: 4),
+                        Text(org.description!, style: const TextStyle(fontSize: 13)),
+                        const SizedBox(height: 12),
+                      ],
+                      _buildInfoRow(Icons.email_outlined, "EMAIL", org.contactEmail ?? 'N/A'),
+                      const SizedBox(height: 8),
+                      _buildInfoRow(Icons.language_rounded, "WEBSITE", org.website ?? 'N/A'),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (org.status != 'rejected')
+                            TextButton.icon(
+                              onPressed: () => onStatusUpdate(org, 'rejected'),
+                              icon: const Icon(Icons.close_rounded, color: Colors.red, size: 18),
+                              label: const Text("REJECT", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                            ),
+                          const SizedBox(width: 8),
+                          if (org.status != 'approved')
+                            ElevatedButton.icon(
+                              onPressed: () => onStatusUpdate(org, 'approved'),
+                              icon: const Icon(Icons.check_rounded, size: 18),
+                              label: const Text("APPROVE", style: TextStyle(fontWeight: FontWeight.bold)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.success,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppTheme.mediumGray),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.mediumGray)),
+            Text(value, style: const TextStyle(fontSize: 13)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved': return AppTheme.success;
+      case 'rejected': return AppTheme.error;
+      case 'pending': return AppTheme.warning;
+      default: return Colors.grey;
+    }
   }
 }

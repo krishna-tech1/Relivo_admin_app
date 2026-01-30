@@ -8,9 +8,10 @@ from db.session import get_db
 from db import models
 from app.core import security
 from app.api import deps
-from app.schemas import user as schemas
+from app.schemas import user as schemas, organization as org_schemas
 from app.core.email_utils import send_verification_email
 from pydantic import BaseModel, EmailStr
+from typing import List, Optional
 
 router = APIRouter(
     prefix="/auth",
@@ -246,3 +247,48 @@ def reset_password(
 @router.get("/me", response_model=schemas.UserResponse)
 def read_users_me(current_user: models.User = Depends(deps.get_current_active_user)):
     return current_user
+
+# --- ADMIN ORGANIZATION MANAGEMENT ---
+
+@router.get("/admin/organizations", response_model=List[org_schemas.Organization])
+def get_organizations(
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_admin_user)
+):
+    """
+    Get all organizations, optionally filtered by status (admin only).
+    """
+    query = db.query(models.Organization)
+    if status:
+        query = query.filter(models.Organization.status == status)
+    
+    return query.order_by(models.Organization.created_at.desc()).offset(skip).limit(limit).all()
+
+@router.put("/admin/organizations/{org_id}/status", response_model=org_schemas.Organization)
+def update_organization_status(
+    org_id: int,
+    status_update: str, # pending, approved, suspended, rejected
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_admin_user)
+):
+    """
+    Update organization status (admin only).
+    """
+    org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    org.status = status_update
+    
+    # If approved, also make the associated user an 'organization' role if not already
+    if status_update == 'approved':
+        user = db.query(models.User).filter(models.User.id == org.user_id).first()
+        if user:
+            user.role = 'organization'
+    
+    db.commit()
+    db.refresh(org)
+    return org

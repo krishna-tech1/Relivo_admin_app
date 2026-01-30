@@ -232,4 +232,48 @@ class AuthService {
     final token = await getToken();
     return token != null;
   }
+
+  // --- ADMIN ORGANIZATION MANAGEMENT ---
+
+  Future<List<Map<String, dynamic>>> getOrganizations({String? status}) async {
+    final token = await getToken();
+    if (token == null) throw Exception("No token found");
+
+    String url = "$baseUrl/auth/admin/organizations";
+    if (status != null) {
+      url += "?status=$status";
+    }
+
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data);
+    } else {
+      throw Exception("Failed to fetch organizations: ${response.body}");
+    }
+  }
+
+  Future<void> updateOrganizationStatus(int orgId, String status) async {
+    final token = await getToken();
+    if (token == null) throw Exception("No token found");
+
+    final response = await http.put(
+      Uri.parse("$baseUrl/auth/admin/organizations/$orgId/status?status_update=$status"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception("Failed to update organization status: ${response.body}");
+    }
+  }
 }
