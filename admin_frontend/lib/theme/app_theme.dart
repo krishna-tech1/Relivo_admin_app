@@ -15,6 +15,11 @@ class AppConstants {
 }
 
 class AppTheme {
+  // Padding & Spacing shortcuts
+  static const double paddingSmall = AppConstants.paddingSmall;
+  static const double paddingMedium = AppConstants.paddingMedium;
+  static const double paddingLarge = AppConstants.paddingLarge;
+  
   // Existing Colors
   static const Color primaryColor = Color(0xFF2563EB); // Blue 600
   static const Color secondaryColor = Color(0xFF1E293B); // Slate 800
@@ -150,6 +155,58 @@ class AppTheme {
           borderSide: const BorderSide(color: errorColor),
         ),
         hintStyle: GoogleFonts.inter(color: textSecondary),
+      ),
+    );
+  }
+
+  static Widget buildCreatorBadge(String type) {
+    Color color;
+    IconData icon;
+    
+    switch (type) {
+      case 'Admin':
+        color = primaryColor;
+        icon = Icons.admin_panel_settings_rounded;
+        break;
+      case 'User':
+        color = success;
+        icon = Icons.person_rounded;
+        break;
+      case 'Organization':
+        color = Colors.teal;
+        icon = Icons.business_rounded;
+        break;
+      case 'External':
+        color = Colors.blueGrey;
+        icon = Icons.cloud_download_rounded;
+        break;
+      default:
+        color = Colors.grey;
+        icon = Icons.help_outline_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withOpacity(0.3), width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 4),
+          Text(
+            type.toUpperCase(),
+            style: TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+              color: color,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
     );
   }

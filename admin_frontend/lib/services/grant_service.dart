@@ -149,6 +149,10 @@ class GrantService {
       isVerified: json['is_verified'] ?? true, 
       isUrgent: false,
       applyUrl: json['apply_url'] ?? '',
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
+      creatorId: json['creator_id'],
+      organizationId: json['organization_id'],
+      source: json['source'] ?? 'manual',
     );
   }
 

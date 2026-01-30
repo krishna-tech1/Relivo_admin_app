@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:admin_frontend/screens/grant_detail_screen.dart';
+import 'package:admin_frontend/screens/admin_insights_screen.dart';
 import '../theme/app_theme.dart';
 import '../models/grant.dart';
 import '../models/organization.dart';
@@ -18,9 +21,18 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _selectedTab = 0;
+  List<Grant> _allGrants = []; 
   List<Grant> _verifiedGrants = [];
   List<Grant> _unverifiedGrants = [];
   List<Organization> _organizations = [];
+  
+  // Search state
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+  List<Grant> _filteredVerifiedGrants = [];
+  List<Grant> _filteredUnverifiedGrants = [];
+  List<Organization> _filteredOrganizations = [];
+
   bool _isLoading = true;
   final GrantService _grantService = GrantService();
   final AuthService _authService = AuthService();
@@ -31,14 +43,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _refreshData();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _refreshData() async {
     setState(() => _isLoading = true);
     try {
       if (_selectedTab == 0 || _selectedTab == 1) {
         await _fetchGrants();
-      } else {
+      }
+      
+      if (_selectedTab == 2) {
         await _fetchOrganizations();
       }
+      
+      _applySearch(); 
     } catch (e) {
       _showError('Error refreshing data: $e');
     } finally {
@@ -51,6 +73,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       final grants = await _grantService.getAllGrantsAdmin();
       if (mounted) {
         setState(() {
+          _allGrants = grants;
           _verifiedGrants = grants.where((g) => g.isVerified).toList();
           _unverifiedGrants = grants.where((g) => !g.isVerified).toList();
         });
@@ -71,6 +94,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     } catch (e) {
       _showError('Error loading organizations: $e');
     }
+  }
+
+  void _applySearch() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredVerifiedGrants = _verifiedGrants;
+        _filteredUnverifiedGrants = _unverifiedGrants;
+        _filteredOrganizations = _organizations;
+      } else {
+        _filteredVerifiedGrants = _verifiedGrants
+            .where((g) => g.title.toLowerCase().contains(query) || g.organizer.toLowerCase().contains(query))
+            .toList();
+        _filteredUnverifiedGrants = _unverifiedGrants
+            .where((g) => g.title.toLowerCase().contains(query) || g.organizer.toLowerCase().contains(query))
+            .toList();
+        _filteredOrganizations = _organizations
+            .where((o) => o.name.toLowerCase().contains(query))
+            .toList();
+      }
+    });
   }
 
   void _showError(String message) {
@@ -167,6 +211,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         isUrgent: grant.isUrgent,
         imageUrl: grant.imageUrl,
         applyUrl: grant.applyUrl,
+        createdAt: grant.createdAt,
+        creatorId: grant.creatorId,
+        organizationId: grant.organizationId,
+        source: grant.source,
       );
 
       await _grantService.updateGrant(updatedGrant);
@@ -203,55 +251,154 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.offWhite,
-      body: SafeArea(
-        child: Column(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: AppTheme.secondaryColor,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: AppTheme.offWhite,
+        body: Column(
           children: [
             // Header
             Container(
               decoration: const BoxDecoration(
                 gradient: AppTheme.adminGradient,
                 boxShadow: [
-                  BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2)),
+                  BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 2)),
                 ],
               ),
-              padding: const EdgeInsets.all(AppConstants.paddingMedium),
+              padding: EdgeInsets.fromLTRB(
+                AppConstants.paddingMedium, 
+                MediaQuery.of(context).padding.top + 16, 
+                AppConstants.paddingMedium, 
+                AppConstants.paddingMedium
+              ),
               child: Column(
                 children: [
-                   Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.admin_panel_settings, color: AppTheme.white),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Admin Dashboard',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.white),
+                  if (!_isSearching)
+                    Row(
+                      children: [
+                        const Icon(Icons.admin_panel_settings_rounded, color: AppTheme.white, size: 28),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'RELIVO ADMIN',
+                            style: GoogleFonts.inter(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.white,
+                              letterSpacing: 0.5,
                             ),
-                            Text('Administrative Control Panel', style: TextStyle(fontSize: 12, color: AppTheme.white)),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () async {
+                            await _fetchGrants();
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => AdminInsightsScreen(
+                                  grants: _allGrants,
+                                  onRefresh: _refreshData,
+                                )),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.analytics_rounded, color: AppTheme.white, size: 22),
+                          tooltip: 'Insights',
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() => _isSearching = true);
+                          },
+                          icon: const Icon(Icons.search_rounded, color: AppTheme.white, size: 22),
+                          tooltip: 'Search',
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(),
+                        ),
+                        PopupMenuButton<String>(
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(),
+                          icon: const Icon(Icons.more_vert_rounded, color: AppTheme.white, size: 22),
+                          onSelected: (value) {
+                            if (value == 'logout') {
+                              _logout();
+                            } else if (value == 'settings') {
+                              // Add settings logic
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'settings',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.settings_rounded, size: 20),
+                                  SizedBox(width: 12),
+                                  Text('Settings'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'logout',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.logout_rounded, size: 20, color: Colors.red),
+                                  SizedBox(width: 12),
+                                  Text('Logout', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                      IconButton(
-                        onPressed: _logout,
-                        icon: const Icon(Icons.logout, color: AppTheme.white),
-                        tooltip: 'Logout',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  
+                      ],
+                    )
+                  else
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _isSearching = false;
+                              _searchController.clear();
+                              _applySearch();
+                            });
+                          },
+                          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.white),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            autofocus: true,
+                            cursorColor: AppTheme.white,
+                            style: GoogleFonts.inter(color: AppTheme.white, fontSize: 18),
+                            decoration: const InputDecoration(
+                              hintText: 'Search...',
+                              hintStyle: TextStyle(color: Colors.white70),
+                              border: InputBorder.none,
+                              filled: false,
+                            ),
+                            onChanged: (_) => _applySearch(),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            _searchController.clear();
+                            _applySearch();
+                          },
+                          icon: const Icon(Icons.close_rounded, color: AppTheme.white),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 20),
+                
                   // Stats Row
                   Row(
                     children: [
@@ -309,20 +456,40 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     index: _selectedTab,
                     children: [
                       _GrantsTab(
-                        grants: _verifiedGrants, 
+                        grants: _filteredVerifiedGrants, 
                         onEdit: _showGrantEditor,
                         onDelete: _deleteGrant,
-                        onRefresh: _refreshData
+                        onRefresh: _refreshData,
+                        onGrantTap: (grant) async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const GrantDetailScreen(showApplyButton: false),
+                              settings: RouteSettings(arguments: grant),
+                            ),
+                          );
+                          if (result == true) _refreshData();
+                        },
                       ),
                       _GrantsTab(
-                        grants: _unverifiedGrants, 
+                        grants: _filteredUnverifiedGrants, 
                         onEdit: _showGrantEditor,
                         onDelete: _deleteGrant,
                         onVerify: _verifyGrant,
-                        onRefresh: _refreshData
+                        onRefresh: _refreshData,
+                        onGrantTap: (grant) async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const GrantDetailScreen(showApplyButton: false),
+                              settings: RouteSettings(arguments: grant),
+                            ),
+                          );
+                          if (result == true) _refreshData();
+                        },
                       ),
                       _OrganizationsTab(
-                        organizations: _organizations,
+                        organizations: _filteredOrganizations,
                         onStatusUpdate: _updateOrgStatus,
                         onRefresh: _refreshData,
                       ),
@@ -331,13 +498,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ],
         ),
+        floatingActionButton: (_selectedTab == 0 || _selectedTab == 1) ? FloatingActionButton(
+          onPressed: () => _showGrantEditor(null),
+          backgroundColor: AppTheme.secondaryColor,
+          elevation: 4,
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+        ) : null,
       ),
-      floatingActionButton: _selectedTab != 2 ? FloatingActionButton.extended(
-        onPressed: () => _showGrantEditor(null),
-        backgroundColor: AppTheme.secondaryColor,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Grant', style: TextStyle(color: Colors.white)),
-      ) : null,
     );
   }
 
@@ -346,32 +513,41 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return Expanded(
       child: InkWell(
         onTap: () {
-          setState(() => _selectedTab = index);
+          setState(() {
+            _selectedTab = index;
+            _applySearch(); 
+          });
           _refreshData();
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
                 color: isSelected ? AppTheme.primaryColor : Colors.transparent,
-                width: 3,
+                width: 3.5,
               ),
             ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: isSelected ? AppTheme.primaryColor : AppTheme.mediumGray, size: 22),
-              const SizedBox(height: 4),
+              Icon(
+                icon, 
+                color: isSelected ? AppTheme.primaryColor : AppTheme.mediumGray.withOpacity(0.7), 
+                size: 24
+              ),
+              const SizedBox(height: 6),
               Text(
                 label.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? AppTheme.primaryColor : AppTheme.mediumGray,
+                  fontSize: 9,
+                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+                  color: isSelected ? AppTheme.primaryColor : AppTheme.mediumGray.withOpacity(0.7),
                   letterSpacing: 0.5,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -401,8 +577,8 @@ class _StatCard extends StatelessWidget {
         children: [
           Icon(icon, color: AppTheme.white, size: 20),
           const SizedBox(height: 6),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.white)),
-          Text(label, style: TextStyle(fontSize: 10, color: AppTheme.white.withOpacity(0.8)), overflow: TextOverflow.ellipsis),
+          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(label, style: TextStyle(fontSize: 10, color: AppTheme.white.withOpacity(0.8)), overflow: TextOverflow.ellipsis, maxLines: 1),
         ],
       ),
     );
@@ -415,13 +591,15 @@ class _GrantsTab extends StatelessWidget {
   final Function(String) onDelete;
   final Function(Grant)? onVerify;
   final VoidCallback onRefresh;
+  final Function(Grant) onGrantTap;
 
   const _GrantsTab({
     required this.grants, 
     required this.onEdit, 
     required this.onDelete,
     this.onVerify,
-    required this.onRefresh
+    required this.onRefresh,
+    required this.onGrantTap,
   });
 
   @override
@@ -451,56 +629,95 @@ class _GrantsTab extends StatelessWidget {
         itemCount: grants.length,
         itemBuilder: (context, index) {
           final grant = grants[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.black.withOpacity(0.05)),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
-              ],
-            ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              leading: Container(
-                width: 50, height: 50,
+          return Stack(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.black.withOpacity(0.05)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                  ],
                 ),
-                child: const Icon(Icons.description_rounded, color: AppTheme.primaryColor),
-              ),
-              title: Text(grant.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text("${grant.organizer}\nDeadline: ${grant.formattedDeadline}", style: const TextStyle(fontSize: 12)),
-              ),
-              isThreeLine: true,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (onVerify != null)
-                    IconButton(
-                      icon: const Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 28),
-                      onPressed: () => onVerify!(grant),
-                      tooltip: 'Verify Grant',
+                child: ListTile(
+                  onTap: () => onGrantTap(grant),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  leading: Container(
+                    width: 50, height: 50,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  PopupMenuButton(
-                    icon: const Icon(Icons.more_vert_rounded),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_rounded, size: 18), SizedBox(width: 8), Text('Edit')])),
-                      const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_rounded, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
-                    ],
-                    onSelected: (val) {
-                      if (val == 'edit') onEdit(grant);
-                      if (val == 'delete') onDelete(grant.id);
-                    },
+                    child: const Icon(Icons.description_rounded, color: AppTheme.primaryColor),
                   ),
-                ],
+                  title: Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(grant.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("${grant.organizer}", style: const TextStyle(fontSize: 12)),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(Icons.timer_outlined, size: 12, color: AppTheme.mediumGray),
+                            const SizedBox(width: 4),
+                            Text("Deadline: ${grant.formattedDeadline}", style: const TextStyle(fontSize: 11, color: AppTheme.mediumGray)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  isThreeLine: true,
+                  trailing: SizedBox(
+                    width: onVerify != null ? 70 : 35,
+                    child: Stack(
+                      alignment: Alignment.centerRight,
+                      children: [
+                        Positioned(
+                          right: 0,
+                          child: PopupMenuButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(Icons.more_vert_rounded, size: 22, color: AppTheme.mediumGray),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_rounded, size: 18), SizedBox(width: 8), Text('Edit')])),
+                              const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_rounded, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
+                            ],
+                            onSelected: (val) {
+                              if (val == 'edit') onEdit(grant);
+                              if (val == 'delete') onDelete(grant.id);
+                            },
+                          ),
+                        ),
+                        if (onVerify != null)
+                          Positioned(
+                            right: 30,
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: const Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 24),
+                              onPressed: () => onVerify!(grant),
+                              tooltip: 'Verify Grant',
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
+              Positioned(
+                top: 8,
+                right: 45, // Adjusted to not overlap with menu
+                child: AppTheme.buildCreatorBadge(grant.creatorType),
+              ),
+            ],
           );
         },
       ),

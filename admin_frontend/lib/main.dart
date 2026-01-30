@@ -33,15 +33,15 @@ class MyAdminApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Explicitly enforce system UI style at the root level
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+      value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent, 
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light, 
-        systemNavigationBarColor: Colors.white,
-        systemNavigationBarIconBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark, 
+        systemNavigationBarColor: AppTheme.secondaryColor,
+        systemNavigationBarIconBrightness: Brightness.light,
       ),
       child: MaterialApp(
-        title: 'Relivo Admin',
+        title: 'RELIVO ADMIN',
         theme: AppTheme.lightTheme,
         debugShowCheckedModeBanner: false,
         // Launch into Splash Screen with Admin Mode flag

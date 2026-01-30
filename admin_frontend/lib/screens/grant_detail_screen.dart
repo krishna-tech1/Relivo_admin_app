@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:admin_frontend/screens/grant_editor_screen.dart';
+import 'package:admin_frontend/services/grant_service.dart';
 import '../theme/app_theme.dart';
 import '../models/grant.dart';
 
 class GrantDetailScreen extends StatelessWidget {
-  const GrantDetailScreen({super.key});
+  final bool showApplyButton;
+  const GrantDetailScreen({super.key, this.showApplyButton = true});
 
   @override
   Widget build(BuildContext context) {
-    final grant = ModalRoute.of(context)!.settings.arguments as Grant;
+    final grantBody = ModalRoute.of(context)!.settings.arguments;
+    if (grantBody == null || grantBody is! Grant) {
+      return const Scaffold(body: Center(child: Text("Invalid grant data")));
+    }
+    final Grant grant = grantBody;
 
     return Scaffold(
       backgroundColor: AppTheme.offWhite,
@@ -37,13 +44,76 @@ class GrantDetailScreen extends StatelessWidget {
                       color: AppTheme.white,
                     ),
                   ),
-                  const Text(
-                    'Grant Details',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.white,
+                  const Expanded(
+                    child: Text(
+                      'Grant Details',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, color: AppTheme.white),
+                    onSelected: (value) async {
+                      if (value == 'edit') {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GrantEditorScreen(grant: grant),
+                          ),
+                        );
+                        if (result == true) {
+                          if (context.mounted) Navigator.pop(context, true);
+                        }
+                      } else if (value == 'delete') {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Grant?'),
+                            content: const Text('Are you sure you want to delete this grant? This action cannot be undone.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true), 
+                                style: TextButton.styleFrom(foregroundColor: AppTheme.error),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true && context.mounted) {
+                          try {
+                            await GrantService().deleteGrant(grant.id);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Grant deleted successfully'), backgroundColor: AppTheme.success),
+                              );
+                              Navigator.pop(context, true);
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.error),
+                              );
+                            }
+                          }
+                        }
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(children: [Icon(Icons.edit, size: 20), SizedBox(width: 12), Text('Edit')]),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(children: [Icon(Icons.delete, size: 20, color: Colors.red), SizedBox(width: 12), Text('Delete', style: TextStyle(color: Colors.red))]),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -231,7 +301,7 @@ class GrantDetailScreen extends StatelessWidget {
                         }).toList(),
                       ),
                     ),
-                    const SizedBox(height: 80), // Space for floating button
+                    SizedBox(height: showApplyButton ? 80 : 20), // Space for floating button
                   ],
                 ),
               ),
@@ -241,7 +311,7 @@ class GrantDetailScreen extends StatelessWidget {
       ),
       
       // Floating Apply Button
-      floatingActionButton: Container(
+      floatingActionButton: showApplyButton ? Container(
         width: double.infinity,
         margin: const EdgeInsets.symmetric(horizontal: AppConstants.paddingMedium),
         height: AppConstants.buttonHeight,
@@ -345,7 +415,7 @@ class GrantDetailScreen extends StatelessWidget {
             ),
           ),
         ),
-      ),
+      ) : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
@@ -458,11 +528,13 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final Widget child;
+  final Widget? trailing;
 
   const _SectionCard({
     required this.title,
     required this.icon,
     required this.child,
+    this.trailing,
   });
 
   @override
@@ -481,14 +553,17 @@ class _SectionCard extends StatelessWidget {
                 size: 24,
               ),
               const SizedBox(width: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.darkGray,
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.darkGray,
+                  ),
                 ),
               ),
+              if (trailing != null) trailing!,
             ],
           ),
           const SizedBox(height: 16),
