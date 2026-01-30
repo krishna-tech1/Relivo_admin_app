@@ -3,6 +3,8 @@ import 'package:admin_frontend/widgets/custom_button.dart';
 import 'package:admin_frontend/widgets/custom_text_field.dart';
 import 'package:admin_frontend/services/auth_services.dart';
 import 'package:admin_frontend/screens/admin_dashboard_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:admin_frontend/theme/app_theme.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -72,7 +74,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: AppTheme.adminGradient,
         ),
         child: SingleChildScrollView(
@@ -108,7 +110,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                             'RELIVO ADMIN',
                             style: GoogleFonts.inter(
                               fontSize: 32,
-                              fontWeight: FontWeight.extrabold,
+                              fontWeight: FontWeight.w800,
                               color: Colors.white,
                               letterSpacing: 2,
                             ),
