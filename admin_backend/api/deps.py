@@ -15,11 +15,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 def get_current_user(
     db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
 ) -> models.User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
@@ -29,19 +24,33 @@ def get_current_user(
         role: str = payload.get("role")
         
         if email is None or user_id is None:
-            raise credentials_exception
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials: Payload missing sub or user_id",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
             
         token_data = schemas.TokenData(email=email, user_id=user_id, role=role)
-    except (JWTError, ValidationError):
-        raise credentials_exception
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired. Please login again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except (JWTError, ValidationError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Could not validate credentials: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
         
     user = db.query(models.User).filter(models.User.id == token_data.user_id).first()
     if user is None:
-        raise credentials_exception
-    
-    # Optional: Verify role matches if needed, but for now just getting user is enough.
-    # We could attach the role from token if we trust the token more than DB for performance,
-    # but DB is safer.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found in database",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     return user
 

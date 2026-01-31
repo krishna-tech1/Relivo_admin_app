@@ -142,6 +142,7 @@ class GrantDetailScreen extends StatelessWidget {
                                 label: grant.category,
                                 gradient: AppTheme.primaryGradient,
                               ),
+                              AppTheme.buildCreatorBadge(grant.creatorType),
                               if (grant.isVerified)
                                 _Badge(
                                   label: 'VERIFIED',

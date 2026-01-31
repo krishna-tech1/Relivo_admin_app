@@ -46,6 +46,8 @@ class GrantUpdate(BaseModel):
 
 class Grant(GrantBase):
     id: int
+    creator_id: Optional[int] = None
+    organization_id: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 

@@ -66,7 +66,14 @@ class GrantService {
     if (response.statusCode == 200 || response.statusCode == 201) {
       return _fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Failed to create grant: ${response.body}');
+      String errorMessage = response.body;
+      try {
+        final errorJson = jsonDecode(response.body);
+        if (errorJson is Map && errorJson.containsKey('detail')) {
+          errorMessage = errorJson['detail'].toString();
+        }
+      } catch (_) {}
+      throw Exception(errorMessage);
     }
   }
 
@@ -87,7 +94,14 @@ class GrantService {
     if (response.statusCode == 200) {
       return _fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Failed to update grant: ${response.body}');
+      String errorMessage = response.body;
+      try {
+        final errorJson = jsonDecode(response.body);
+        if (errorJson is Map && errorJson.containsKey('detail')) {
+          errorMessage = errorJson['detail'].toString();
+        }
+      } catch (_) {}
+      throw Exception(errorMessage);
     }
   }
 
@@ -104,7 +118,14 @@ class GrantService {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to delete grant: ${response.body}');
+      String errorMessage = response.body;
+      try {
+        final errorJson = jsonDecode(response.body);
+        if (errorJson is Map && errorJson.containsKey('detail')) {
+          errorMessage = errorJson['detail'].toString();
+        }
+      } catch (_) {}
+      throw Exception(errorMessage);
     }
   }
 

@@ -112,6 +112,8 @@ async def migrate_database_public():
             'external_id': 'VARCHAR(100)',
             'is_verified': 'BOOLEAN DEFAULT FALSE',
             'is_active': 'BOOLEAN DEFAULT TRUE',
+            'creator_id': 'INTEGER',
+            'organization_id': 'INTEGER',
             'eligibility_criteria': 'JSON',
             'required_documents': 'JSON',
         }

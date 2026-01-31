@@ -102,6 +102,7 @@ def create_grant(
     Create new grant (admin only).
     """
     grant = models.Grant(**grant_in.dict())
+    grant.creator_id = current_user.id
     db.add(grant)
     db.commit()
     db.refresh(grant)

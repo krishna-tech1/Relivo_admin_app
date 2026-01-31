@@ -88,8 +88,12 @@ def submit_grant(
     grant_data['is_verified'] = False 
     grant_data['is_active'] = True
 
+    # Check for Admin Role (Admin submissions are trusted)
+    if current_user.role == 'admin':
+        grant_data['is_verified'] = True
+    
     # Check for Organization Role
-    if current_user.role == 'organization':
+    elif current_user.role == 'organization':
         org = db.query(models.Organization).filter(models.Organization.user_id == current_user.id).first()
         if org:
             grant_data['organization_id'] = org.id
@@ -267,7 +271,14 @@ def create_grant(
     """
     Create new grant (admin only).
     """
-    grant = models.Grant(**grant_in.dict())
+    grant_data = grant_in.dict()
+    
+    # Set defaults for admin-created grants
+    grant_data['creator_id'] = current_user.id
+    if 'is_verified' not in grant_data or grant_data['is_verified'] is None:
+        grant_data['is_verified'] = True # Default to verified if admin creates it
+    
+    grant = models.Grant(**grant_data)
     db.add(grant)
     db.commit()
     db.refresh(grant)
