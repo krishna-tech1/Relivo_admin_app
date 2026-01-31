@@ -173,6 +173,7 @@ class GrantService {
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
       creatorId: json['creator_id'],
       organizationId: json['organization_id'],
+      creatorRole: json['creator_role'],
       source: json['source'] ?? 'manual',
     );
   }

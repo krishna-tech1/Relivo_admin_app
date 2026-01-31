@@ -48,6 +48,7 @@ class Grant(GrantBase):
     id: int
     creator_id: Optional[int] = None
     organization_id: Optional[int] = None
+    creator_role: Optional[str] = None # Added field
     created_at: datetime
     updated_at: Optional[datetime] = None
 

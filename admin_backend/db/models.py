@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, Text, Index, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .session import Base
 
@@ -65,6 +66,16 @@ class Grant(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
+    # Relationships
+    creator = relationship("User", foreign_keys=[creator_id])
+    organization = relationship("Organization", foreign_keys=[organization_id])
+    
+    @property
+    def creator_role(self) -> str:
+        if self.creator:
+            return self.creator.role
+        return "user"
+
     # Composite indexes for common queries
     __table_args__ = (
         Index('ix_grants_verified_active', 'is_verified', 'is_active'),

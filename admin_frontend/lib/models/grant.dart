@@ -16,6 +16,7 @@ class Grant {
   final DateTime? createdAt;
   final int? creatorId;
   final int? organizationId;
+  final String? creatorRole;
   final String source;
 
   Grant({
@@ -36,6 +37,7 @@ class Grant {
     this.createdAt,
     this.creatorId,
     this.organizationId,
+    this.creatorRole,
     this.source = 'manual',
   });
 
@@ -56,13 +58,15 @@ class Grant {
     if (source == 'grants.gov') return 'External';
     if (organizationId != null) return 'Organization';
     
-    // If it's manual and has no organization, we check the creator_id.
-    // In our system, Admin is typically creatorId 1.
-    // However, if the source is specifically 'manual', it's almost always Admin or User.
+    // Check if we have the explicit role from backend
+    if (creatorRole == 'admin') return 'Admin';
+    if (creatorRole == 'user') return 'User';
+    
+    // Fallback to ID-based logic if role is missing
     if (creatorId == 1) return 'Admin';
     if (creatorId != null && creatorId != 1) return 'User';
     
-    // Default fallback for manual grants where creatorId might be missing in some views
+    // Default fallback for manual grants
     return 'Admin'; 
   }
 

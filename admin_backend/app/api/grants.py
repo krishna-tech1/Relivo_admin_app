@@ -10,7 +10,7 @@ Provides endpoints for:
 
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from db import models
 from app.schemas import grant as schemas
@@ -54,7 +54,7 @@ def get_verified_grants(
     """
     Get all verified grants (admin only).
     """
-    grants = db.query(models.Grant).filter(
+    grants = db.query(models.Grant).options(joinedload(models.Grant.creator)).filter(
         models.Grant.is_verified == True
     ).order_by(models.Grant.created_at.desc()).offset(skip).limit(limit).all()
     return grants
@@ -70,7 +70,7 @@ def get_unverified_grants(
     """
     Get all unverified grants (admin only).
     """
-    grants = db.query(models.Grant).filter(
+    grants = db.query(models.Grant).options(joinedload(models.Grant.creator)).filter(
         models.Grant.is_verified == False
     ).order_by(models.Grant.created_at.desc()).offset(skip).limit(limit).all()
     return grants
@@ -86,7 +86,7 @@ def get_all_grants_admin(
     """
     Get all grants regardless of verification status (admin only).
     """
-    grants = db.query(models.Grant).order_by(
+    grants = db.query(models.Grant).options(joinedload(models.Grant.creator)).order_by(
         models.Grant.created_at.desc()
     ).offset(skip).limit(limit).all()
     return grants
