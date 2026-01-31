@@ -62,7 +62,7 @@ async def health_check():
         return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
 
 
-@app.post("/migrate-database")
+@app.get("/migrate-database")
 async def migrate_database_public():
     """
     PUBLIC endpoint to migrate database schema.
