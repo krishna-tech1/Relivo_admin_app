@@ -27,8 +27,8 @@ async def startup_event():
     """Create database tables on startup"""
     try:
         logger.info("Creating database tables...")
-        # Base.metadata.create_all(bind=engine)
-        logger.info("✅ Database tables check skipped (verified separately)")
+        Base.metadata.create_all(bind=engine)
+        logger.info("✅ Database tables created successfully")
     except Exception as e:
         logger.error(f"❌ Error creating tables: {e}")
         # Don't crash the app, tables might already exist
@@ -112,6 +112,8 @@ async def migrate_database_public():
             'external_id': 'VARCHAR(100)',
             'is_verified': 'BOOLEAN DEFAULT FALSE',
             'is_active': 'BOOLEAN DEFAULT TRUE',
+            'creator_id': 'INTEGER',
+            'organization_id': 'INTEGER',
             'eligibility_criteria': 'JSON',
             'required_documents': 'JSON',
         }
