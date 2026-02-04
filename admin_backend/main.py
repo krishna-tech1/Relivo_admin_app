@@ -38,6 +38,8 @@ async def startup_event():
 app.include_router(auth.router)
 from app.api import grants
 app.include_router(grants.router)
+from app.api import organizations
+app.include_router(organizations.router)
 
 @app.get("/")
 async def root():
