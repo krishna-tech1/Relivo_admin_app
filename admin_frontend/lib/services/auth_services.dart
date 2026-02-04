@@ -235,17 +235,12 @@ class AuthService {
 
   // --- ADMIN ORGANIZATION MANAGEMENT ---
 
-  Future<List<Map<String, dynamic>>> getOrganizations({String? status}) async {
+  Future<List<Map<String, dynamic>>> getOrganizations() async {
     final token = await getToken();
     if (token == null) throw Exception("No token found");
 
-    String url = "$baseUrl/auth/admin/organizations";
-    if (status != null) {
-      url += "?status=$status";
-    }
-
     final response = await http.get(
-      Uri.parse(url),
+      Uri.parse("$baseUrl/organizations/admin/all"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -260,12 +255,12 @@ class AuthService {
     }
   }
 
-  Future<void> updateOrganizationStatus(int orgId, String status) async {
+  Future<void> approveOrganization(int orgId) async {
     final token = await getToken();
     if (token == null) throw Exception("No token found");
 
-    final response = await http.put(
-      Uri.parse("$baseUrl/auth/admin/organizations/$orgId/status?status_update=$status"),
+    final response = await http.post(
+      Uri.parse("$baseUrl/organizations/admin/$orgId/approve"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -273,7 +268,25 @@ class AuthService {
     );
 
     if (response.statusCode != 200) {
-      throw Exception("Failed to update organization status: ${response.body}");
+      throw Exception("Failed to approve organization: ${response.body}");
     }
   }
+
+  Future<void> rejectOrganization(int orgId) async {
+    final token = await getToken();
+    if (token == null) throw Exception("No token found");
+
+    final response = await http.post(
+      Uri.parse("$baseUrl/organizations/admin/$orgId/reject"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception("Failed to reject organization: ${response.body}");
+    }
+  }
+
 }

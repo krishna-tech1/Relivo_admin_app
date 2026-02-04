@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:admin_frontend/screens/grant_detail_screen.dart';
 import 'package:admin_frontend/screens/admin_insights_screen.dart';
+import 'package:admin_frontend/screens/organization_detail_screen.dart';
 import '../theme/app_theme.dart';
 import '../models/grant.dart';
 import '../models/organization.dart';
@@ -231,13 +232,50 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _updateOrgStatus(Organization org, String status) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(status == 'approved' ? 'Approve Organization?' : 'Reject Organization?'),
+        content: Text(
+          status == 'approved'
+              ? 'This will send an approval email with login credentials to ${org.contactEmail}. Continue?'
+              : 'This will send a rejection notification email to ${org.contactEmail}. Continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: status == 'approved' ? AppTheme.success : AppTheme.error,
+            ),
+            child: Text(status == 'approved' ? 'Approve' : 'Reject'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     setState(() => _isLoading = true);
     try {
-      await _authService.updateOrganizationStatus(org.id, status);
+      if (status == 'approved') {
+        await _authService.approveOrganization(org.id);
+      } else if (status == 'rejected') {
+        await _authService.rejectOrganization(org.id);
+      }
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Organization ${status == 'approved' ? 'approved' : 'rejected'} successfully!'),
+            content: Text(
+              status == 'approved' 
+                  ? 'Organization approved! Email sent to ${org.contactEmail}'
+                  : 'Organization rejected. Notification sent to ${org.contactEmail}'
+            ),
             backgroundColor: status == 'approved' ? AppTheme.success : AppTheme.error,
           ),
         );
@@ -248,6 +286,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -767,80 +806,79 @@ class _OrganizationsTab extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.black.withOpacity(0.05)),
-            ),
-            child: ExpansionTile(
-              shape: const RoundedRectangleBorder(side: BorderSide.none),
-              collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
-              leading: CircleAvatar(
-                backgroundColor: statusColor.withOpacity(0.1),
-                child: Icon(Icons.business_rounded, color: statusColor, size: 20),
-              ),
-              title: Text(org.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-              subtitle: Text(org.status.toUpperCase(), style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5)),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Divider(),
-                      if (org.description != null) ...[
-                        const Text("DESCRIPTION", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.mediumGray)),
-                        const SizedBox(height: 4),
-                        Text(org.description!, style: const TextStyle(fontSize: 13)),
-                        const SizedBox(height: 12),
-                      ],
-                      _buildInfoRow(Icons.email_outlined, "EMAIL", org.contactEmail ?? 'N/A'),
-                      const SizedBox(height: 8),
-                      _buildInfoRow(Icons.language_rounded, "WEBSITE", org.website ?? 'N/A'),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (org.status != 'rejected')
-                            TextButton.icon(
-                              onPressed: () => onStatusUpdate(org, 'rejected'),
-                              icon: const Icon(Icons.close_rounded, color: Colors.red, size: 18),
-                              label: const Text("REJECT", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                            ),
-                          const SizedBox(width: 8),
-                          if (org.status != 'approved')
-                            ElevatedButton.icon(
-                              onPressed: () => onStatusUpdate(org, 'approved'),
-                              icon: const Icon(Icons.check_rounded, size: 18),
-                              label: const Text("APPROVE", style: TextStyle(fontWeight: FontWeight.bold)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.success,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
               ],
+            ),
+            child: ListTile(
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OrganizationDetailScreen(organization: org),
+                  ),
+                );
+                if (result == true) {
+                  onRefresh();
+                }
+              },
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              leading: CircleAvatar(
+                radius: 28,
+                backgroundColor: statusColor.withOpacity(0.1),
+                child: Icon(Icons.business_rounded, color: statusColor, size: 24),
+              ),
+              title: Text(
+                org.name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: statusColor.withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        org.status.toUpperCase(),
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        org.contactEmail ?? 'No email',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 18, color: AppTheme.mediumGray),
             ),
           );
         },
       ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: AppTheme.mediumGray),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.mediumGray)),
-            Text(value, style: const TextStyle(fontSize: 13)),
-          ],
-        ),
-      ],
     );
   }
 

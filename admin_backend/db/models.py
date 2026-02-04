@@ -95,7 +95,13 @@ class Organization(Base):
     
     # Contact Info
     website = Column(String(200), nullable=True)
-    contact_email = Column(String(200), nullable=True)
+    contact_email = Column(String(200), nullable=True, unique=True)
+    country = Column(String(100), nullable=True)
+    type = Column(String(50), nullable=True) # Government, NGO, Private
+    password = Column(String(255), nullable=True)
+    otp = Column(String(10), nullable=True)
+    otp_expires = Column(DateTime(timezone=True), nullable=True)
+    must_change_password = Column(Boolean, default=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

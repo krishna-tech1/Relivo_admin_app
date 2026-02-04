@@ -36,8 +36,9 @@ async def startup_event():
 
 # Include routers
 app.include_router(auth.router)
-from app.api import grants
+from app.api import grants, organizations
 app.include_router(grants.router)
+app.include_router(organizations.router)
 
 @app.get("/")
 async def root():

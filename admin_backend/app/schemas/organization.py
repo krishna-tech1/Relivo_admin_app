@@ -7,6 +7,8 @@ class OrganizationBase(BaseModel):
     description: Optional[str] = None
     website: Optional[str] = None
     contact_email: Optional[EmailStr] = None
+    country: Optional[str] = None
+    type: Optional[str] = None
     status: str = "pending"
 
 class OrganizationCreate(OrganizationBase):
