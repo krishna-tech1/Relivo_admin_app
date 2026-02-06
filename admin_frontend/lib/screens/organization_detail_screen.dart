@@ -51,61 +51,84 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 28),
+            const Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 28),
             const SizedBox(width: 12),
-            const Text('Approve Organization?'),
+            Expanded(
+              child: Text(
+                widget.organization.status.toLowerCase() == 'rejected' 
+                  ? 'Re-approve Organization?' 
+                  : 'Approve Organization?',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'This will send an approval email with login credentials to:',
-              style: TextStyle(color: Colors.grey[700]),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.success.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.success.withOpacity(0.3)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This will send an approval email with login credentials to:',
+                style: GoogleFonts.inter(color: AppTheme.mediumGray, fontSize: 14),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.email_rounded, size: 18, color: AppTheme.success),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      widget.organization.contactEmail ?? 'N/A',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.success,
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.success.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.success.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.email_outlined, size: 20, color: AppTheme.success),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        widget.organization.contactEmail ?? 'N/A',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.success,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                'The organization will gain full access to the platform upon approval.',
+                style: GoogleFonts.inter(
+                  color: AppTheme.mediumGray,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(color: AppTheme.mediumGray, fontWeight: FontWeight.w600),
+            ),
           ),
-          ElevatedButton.icon(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            icon: const Icon(Icons.check_rounded, size: 18),
-            label: const Text('Approve'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.success,
               foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
+            child: const Text('Approve Now'),
           ),
         ],
       ),
@@ -117,6 +140,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     try {
       await _authService.approveOrganization(widget.organization.id);
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -135,7 +159,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
-        Navigator.pop(context, true); // Return true to refresh the list
+        Navigator.pop(context, true); 
       }
     } catch (e) {
       if (mounted) {
@@ -150,65 +174,90 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     }
   }
 
-  Future<void> _handleRejection() async {
+  Future<void> _handleRejection({bool isSuspend = false}) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Icon(Icons.cancel_rounded, color: AppTheme.error, size: 28),
             const SizedBox(width: 12),
-            const Text('Reject Organization?'),
+            Expanded(
+              child: Text(
+                isSuspend ? 'Suspend Organization?' : 'Reject Organization?',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'This will send a rejection notification email to:',
-              style: TextStyle(color: Colors.grey[700]),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.error.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isSuspend 
+                  ? 'This will deactivate the organization account and notify:'
+                  : 'This will send a rejection notification email to:',
+                style: GoogleFonts.inter(color: AppTheme.mediumGray, fontSize: 14),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.email_rounded, size: 18, color: AppTheme.error),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      widget.organization.contactEmail ?? 'N/A',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.error,
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.error.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.error.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.email_outlined, size: 20, color: AppTheme.error),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        widget.organization.contactEmail ?? 'N/A',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.error,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                isSuspend 
+                  ? 'The organization can be re-approved later from this screen.'
+                  : 'Note: This action is permanent and the organization will be notified.',
+                style: GoogleFonts.inter(
+                  color: AppTheme.mediumGray,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(color: AppTheme.mediumGray, fontWeight: FontWeight.w600),
+            ),
           ),
-          ElevatedButton.icon(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            icon: const Icon(Icons.close_rounded, size: 18),
-            label: const Text('Reject'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.error,
               foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
+            child: Text(isSuspend ? 'Suspend Now' : 'Reject Now'),
           ),
         ],
       ),
@@ -220,6 +269,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     try {
       await _authService.rejectOrganization(widget.organization.id);
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -228,7 +278,9 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Organization rejected. Notification sent to ${widget.organization.contactEmail}',
+                    isSuspend 
+                      ? 'Organization account suspended.'
+                      : 'Organization rejected. Notification sent to ${widget.organization.contactEmail}',
                   ),
                 ),
               ],
@@ -238,14 +290,14 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
-        Navigator.pop(context, true); // Return true to refresh the list
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error rejecting organization: $e'),
+            content: Text('Error processing request: $e'),
             backgroundColor: AppTheme.error,
           ),
         );
@@ -257,6 +309,11 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor(widget.organization.status);
     final statusIcon = _getStatusIcon(widget.organization.status);
+    final status = widget.organization.status.toLowerCase();
+    
+    final isPending = status == 'pending';
+    final isApproved = status == 'approved';
+    final isRejected = status == 'rejected';
 
     return Scaffold(
       backgroundColor: AppTheme.offWhite,
@@ -264,17 +321,20 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
         children: [
           CustomScrollView(
             slivers: [
-              // App Bar
+              // Header
               SliverAppBar(
-                expandedHeight: 200,
+                expandedHeight: 220,
                 pinned: true,
+                elevation: 0,
                 backgroundColor: AppTheme.primaryColor,
                 flexibleSpace: FlexibleSpaceBar(
+                  expandedTitleScale: 1.2,
                   title: Text(
                     widget.organization.name,
                     style: GoogleFonts.inter(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
+                      color: Colors.white,
                     ),
                   ),
                   background: Container(
@@ -284,12 +344,30 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                     child: Stack(
                       children: [
                         Positioned(
-                          right: -50,
-                          top: -50,
+                          right: -20,
+                          top: -20,
                           child: Icon(
                             Icons.business_rounded,
-                            size: 250,
-                            color: Colors.white.withOpacity(0.1),
+                            size: 200,
+                            color: Colors.white.withOpacity(0.05),
+                          ),
+                        ),
+                        Center(
+                          child: Hero(
+                            tag: 'org_logo_${widget.organization.id}',
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white.withOpacity(0.2)),
+                              ),
+                              child: const Icon(
+                                Icons.apartment_rounded,
+                                size: 60,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -297,134 +375,133 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                   ),
                 ),
                 leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
 
-              // Content
+              // Body
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Status Card
+                      // Status Section
+                      _buildSectionHeader('APPLICATION STATUS'),
+                      const SizedBox(height: 12),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
                             ),
                           ],
                         ),
                         child: Column(
                           children: [
-                            Icon(statusIcon, size: 64, color: statusColor),
-                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: statusColor.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(statusIcon, size: 48, color: statusColor),
+                            ),
+                            const SizedBox(height: 16),
                             Text(
                               widget.organization.status.toUpperCase(),
                               style: GoogleFonts.inter(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w900,
                                 color: statusColor,
-                                letterSpacing: 1.5,
+                                letterSpacing: 2,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              'Registered on ${DateFormat('MMM dd, yyyy').format(widget.organization.createdAt)}',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 13,
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppTheme.offWhite,
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: Text(
+                                'Applied on ${DateFormat('MMMM dd, yyyy').format(widget.organization.createdAt)}',
+                                style: GoogleFonts.inter(
+                                  color: AppTheme.mediumGray,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
 
-                      // Organization Details
-                      Text(
-                        'ORGANIZATION DETAILS',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.mediumGray,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
+                      // Org Info Section
+                      _buildSectionHeader('ORGANIZATION DETAILS'),
                       const SizedBox(height: 12),
-
-                      // Description
-                      if (widget.organization.description != null) ...[
-                        _buildDetailCard(
-                          icon: Icons.description_rounded,
-                          title: 'Description',
+                      
+                      if (widget.organization.description != null && widget.organization.description!.isNotEmpty) ...[
+                        _buildInfoCard(
+                          icon: Icons.notes_rounded,
+                          title: 'About',
                           content: widget.organization.description!,
-                          color: Colors.blue,
+                          color: Colors.indigo,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                       ],
 
-                      // Contact Information
-                      _buildDetailCard(
-                        icon: Icons.email_rounded,
-                        title: 'Contact Email',
-                        content: widget.organization.contactEmail ?? 'Not provided',
-                        color: Colors.orange,
+                      _buildInfoCard(
+                        icon: Icons.email_outlined,
+                        title: 'Official Email',
+                        content: widget.organization.contactEmail ?? 'N/A',
+                        color: Colors.blue,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
-                      _buildDetailCard(
+                      _buildInfoCard(
                         icon: Icons.language_rounded,
                         title: 'Website',
-                        content: widget.organization.website ?? 'Not provided',
+                        content: widget.organization.website ?? 'N/A',
                         color: Colors.purple,
+                        isLink: widget.organization.website != null,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
-                      // Location & Type
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildDetailCard(
-                              icon: Icons.public_rounded,
-                              title: 'Country',
-                              content: widget.organization.country ?? 'Not provided',
-                              color: Colors.green,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildDetailCard(
-                              icon: Icons.category_rounded,
-                              title: 'Type',
-                              content: widget.organization.type ?? 'Not provided',
-                              color: Colors.teal,
-                            ),
-                          ),
-                        ],
+                      _buildInfoCard(
+                        icon: Icons.public_rounded,
+                        title: 'Country',
+                        content: widget.organization.country ?? 'N/A',
+                        color: Colors.green,
                       ),
+                      const SizedBox(height: 16),
 
-                      const SizedBox(height: 24),
+                      _buildInfoCard(
+                        icon: Icons.category_outlined,
+                        title: 'Org Type',
+                        content: widget.organization.type ?? 'N/A',
+                        color: Colors.orange,
+                      ),
+                      const SizedBox(height: 16),
 
-                      // User ID Info
-                      _buildDetailCard(
-                        icon: Icons.person_rounded,
-                        title: 'User ID',
-                        content: widget.organization.userId?.toString() ?? 'N/A',
-                        color: Colors.indigo,
+                      _buildInfoCard(
+                        icon: Icons.person_pin_rounded,
+                        title: 'Owner Account ID',
+                        content: widget.organization.userId?.toString() ?? 'Internal Only',
+                        subtitle: 'Reference ID of the linked user account',
+                        color: Colors.teal,
                       ),
 
-                      const SizedBox(height: 100), // Space for action buttons
+                      const SizedBox(height: 120), // Padding for buttons
                     ],
                   ),
                 ),
@@ -432,76 +509,80 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
             ],
           ),
 
-          // Action Buttons (Fixed at bottom)
-          if (widget.organization.status.toLowerCase() != 'approved' ||
-              widget.organization.status.toLowerCase() != 'rejected')
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
+          // Action Buttons
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).padding.bottom + 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 30,
+                    offset: const Offset(0, -10),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  if (isPending) ...[
+                    Expanded(
+                      flex: 1,
+                      child: _buildActionButton(
+                        onPressed: _isLoading ? null : () => _handleRejection(isSuspend: false),
+                        icon: Icons.close_rounded,
+                        label: 'Reject',
+                        color: AppTheme.error,
+                        isOutlined: true,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: _buildActionButton(
+                        onPressed: _isLoading ? null : _handleApproval,
+                        icon: Icons.check_rounded,
+                        label: 'Approve Organization',
+                        color: AppTheme.success,
+                        isOutlined: false,
+                      ),
                     ),
                   ],
-                ),
-                child: SafeArea(
-                  child: Row(
-                    children: [
-                      if (widget.organization.status.toLowerCase() != 'rejected')
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _isLoading ? null : _handleRejection,
-                            icon: const Icon(Icons.close_rounded),
-                            label: const Text('REJECT'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.error,
-                              side: const BorderSide(color: AppTheme.error, width: 2),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (widget.organization.status.toLowerCase() != 'rejected' &&
-                          widget.organization.status.toLowerCase() != 'approved')
-                        const SizedBox(width: 12),
-                      if (widget.organization.status.toLowerCase() != 'approved')
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _handleApproval,
-                            icon: const Icon(Icons.check_rounded),
-                            label: const Text('APPROVE'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.success,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+                  if (isApproved)
+                    Expanded(
+                      child: _buildActionButton(
+                        onPressed: _isLoading ? null : () => _handleRejection(isSuspend: true),
+                        icon: Icons.block_rounded,
+                        label: 'SUSPEND ORGANIZATION',
+                        color: AppTheme.error,
+                        isOutlined: false,
+                      ),
+                    ),
+                  if (isRejected)
+                    Expanded(
+                      child: _buildActionButton(
+                        onPressed: _isLoading ? null : _handleApproval,
+                        icon: Icons.check_rounded,
+                        label: 'RE-APPROVE ORGANIZATION',
+                        color: AppTheme.success,
+                        isOutlined: false,
+                      ),
+                    ),
+                ],
               ),
             ),
+          ),
 
           // Loading Overlay
           if (_isLoading)
             Container(
               color: Colors.black54,
               child: const Center(
-                child: CircularProgressIndicator(color: Colors.white),
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
               ),
             ),
         ],
@@ -509,24 +590,38 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     );
   }
 
-  Widget _buildDetailCard({
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+        color: AppTheme.mediumGray,
+        letterSpacing: 1.5,
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({
     required IconData icon,
     required String title,
     required String content,
+    String? subtitle,
     required Color color,
+    bool isLink = false,
   }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -534,10 +629,10 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(15),
             ),
             child: Icon(icon, color: color, size: 22),
           ),
@@ -550,25 +645,76 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                   title.toUpperCase(),
                   style: GoogleFonts.inter(
                     fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     color: AppTheme.mediumGray,
-                    letterSpacing: 0.8,
+                    letterSpacing: 1,
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  content,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.darkGray,
-                    height: 1.4,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    content,
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: isLink ? AppTheme.primaryColor : AppTheme.darkGray,
+                      height: 1.4,
+                    ),
                   ),
                 ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      color: AppTheme.mediumGray,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required VoidCallback? onPressed,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool isOutlined,
+  }) {
+    if (isOutlined) {
+      return OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 20),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: color,
+          side: BorderSide(color: color, width: 2),
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+      );
+    }
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 20),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        textStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
       ),
     );
   }
