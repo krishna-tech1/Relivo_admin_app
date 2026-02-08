@@ -19,6 +19,8 @@ router = APIRouter(
 
 def send_approval_email(email: str):
     """Send approval email notification via Brevo SMTP"""
+    print(f"[EMAIL] Attempting to send approval email to: {email}")
+    
     msg = MIMEMultipart()
     msg['From'] = settings.MAIL_FROM
     msg['To'] = email
@@ -39,16 +41,26 @@ def send_approval_email(email: str):
     msg.attach(MIMEText(body, 'html'))
 
     try:
+        print(f"[EMAIL] Connecting to SMTP server: {settings.MAIL_SERVER}:{settings.MAIL_PORT}")
         with smtplib.SMTP(settings.MAIL_SERVER, settings.MAIL_PORT) as server:
             server.starttls()
+            print(f"[EMAIL] Logging in with username: {settings.MAIL_USERNAME}")
             server.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
+            print(f"[EMAIL] Sending message to: {email}")
             server.send_message(msg)
-        print(f"Approval email sent to {email}")
+        print(f"[EMAIL] ✓ Approval email sent successfully to {email}")
+        return True
     except Exception as e:
-        print(f"Error sending approval email: {e}")
+        print(f"[EMAIL] ✗ Error sending approval email to {email}: {str(e)}")
+        print(f"[EMAIL] Error type: {type(e).__name__}")
+        import traceback
+        print(f"[EMAIL] Traceback: {traceback.format_exc()}")
+        return False
 
 def send_rejection_email(email: str, org_name: str, rejection_reason: str = None):
     """Send rejection email via Brevo SMTP"""
+    print(f"[EMAIL] Attempting to send rejection email to: {email} for org: {org_name}")
+    
     msg = MIMEMultipart()
     msg['From'] = settings.MAIL_FROM
     msg['To'] = email
@@ -57,6 +69,7 @@ def send_rejection_email(email: str, org_name: str, rejection_reason: str = None
     # Build the reason section if provided
     reason_section = ""
     if rejection_reason and rejection_reason.strip():
+        print(f"[EMAIL] Including rejection reason: {rejection_reason[:50]}...")
         reason_section = f"""
         <div style="background: #ffe6e6; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #d9534f;">
             <p style="margin: 0 0 8px 0; color: #721c24; font-weight: bold;">Reason for rejection:</p>
@@ -80,13 +93,18 @@ def send_rejection_email(email: str, org_name: str, rejection_reason: str = None
     msg.attach(MIMEText(body, 'html'))
 
     try:
+        print(f"[EMAIL] Connecting to SMTP server for rejection email")
         with smtplib.SMTP(settings.MAIL_SERVER, settings.MAIL_PORT) as server:
             server.starttls()
             server.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
             server.send_message(msg)
-        print(f"Rejection email sent to {email}")
+        print(f"[EMAIL] ✓ Rejection email sent successfully to {email}")
+        return True
     except Exception as e:
-        print(f"Error sending rejection email: {e}")
+        print(f"[EMAIL] ✗ Error sending rejection email to {email}: {str(e)}")
+        import traceback
+        print(f"[EMAIL] Traceback: {traceback.format_exc()}")
+        return False
 
 @router.get("/admin/all", response_model=List[schemas.Organization])
 def get_all_organizations(
