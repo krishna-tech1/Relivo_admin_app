@@ -111,16 +111,25 @@ def get_all_organizations(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(deps.get_current_admin_user)
 ):
-    """Get all organizations (admin only)"""
-    return db.query(models.Organization).order_by(models.Organization.created_at.desc()).all()
+    """Get all organizations (admin only) - only shows organizations with verified users"""
+    return db.query(models.Organization).join(
+        models.User, models.Organization.user_id == models.User.id
+    ).filter(
+        models.User.is_verified == True
+    ).order_by(models.Organization.created_at.desc()).all()
 
 @router.get("/admin/pending", response_model=List[schemas.Organization])
 def get_pending_organizations(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(deps.get_current_admin_user)
 ):
-    """Get only pending organizations (admin only)"""
-    return db.query(models.Organization).filter(models.Organization.status == "pending").all()
+    """Get only pending organizations (admin only) - only shows organizations with verified users"""
+    return db.query(models.Organization).join(
+        models.User, models.Organization.user_id == models.User.id
+    ).filter(
+        models.Organization.status == "pending",
+        models.User.is_verified == True
+    ).order_by(models.Organization.created_at.desc()).all()
 
 @router.post("/admin/{org_id}/approve")
 def approve_organization(
