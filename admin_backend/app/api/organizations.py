@@ -1,9 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import os
 
 from db import models
@@ -18,15 +15,14 @@ router = APIRouter(
 )
 
 def send_approval_email(email: str):
-    """Send approval email notification via Brevo SMTP"""
+    """Send approval email notification via Brevo API"""
     print(f"[EMAIL] Attempting to send approval email to: {email}")
     
-    msg = MIMEMultipart()
-    msg['From'] = settings.MAIL_FROM
-    msg['To'] = email
-    msg['Subject'] = "Relivo Organization Approved!"
-
-    body = f"""
+    # Brevo API endpoint
+    url = "https://api.brevo.com/v3/smtp/email"
+    
+    # Email content
+    html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
         <h2 style="color: #17463a;">Congratulations!</h2>
         <p>Your organization has been approved by the Relivo Admin team.</p>
@@ -38,18 +34,40 @@ def send_approval_email(email: str):
         <p style="margin-top: 15px; font-size: 0.9em; color: #666;">Best regards,<br>The Relivo Team</p>
     </div>
     """
-    msg.attach(MIMEText(body, 'html'))
-
+    
+    payload = {
+        "sender": {
+            "name": "Relivo Admin",
+            "email": settings.MAIL_FROM
+        },
+        "to": [
+            {
+                "email": email
+            }
+        ],
+        "subject": "Relivo Organization Approved!",
+        "htmlContent": html_content
+    }
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": settings.MAIL_PASSWORD,  # Brevo API key
+        "content-type": "application/json"
+    }
+    
     try:
-        print(f"[EMAIL] Connecting to SMTP server: {settings.MAIL_SERVER}:{settings.MAIL_PORT}")
-        with smtplib.SMTP(settings.MAIL_SERVER, settings.MAIL_PORT) as server:
-            server.starttls()
-            print(f"[EMAIL] Logging in with username: {settings.MAIL_USERNAME}")
-            server.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
-            print(f"[EMAIL] Sending message to: {email}")
-            server.send_message(msg)
-        print(f"[EMAIL] ✓ Approval email sent successfully to {email}")
-        return True
+        print(f"[EMAIL] Sending via Brevo API to: {email}")
+        import requests
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        
+        if response.status_code in [200, 201]:
+            print(f"[EMAIL] ✓ Approval email sent successfully to {email}")
+            print(f"[EMAIL] Response: {response.json()}")
+            return True
+        else:
+            print(f"[EMAIL] ✗ Failed to send email. Status: {response.status_code}")
+            print(f"[EMAIL] Response: {response.text}")
+            return False
     except Exception as e:
         print(f"[EMAIL] ✗ Error sending approval email to {email}: {str(e)}")
         print(f"[EMAIL] Error type: {type(e).__name__}")
@@ -58,14 +76,12 @@ def send_approval_email(email: str):
         return False
 
 def send_rejection_email(email: str, org_name: str, rejection_reason: str = None):
-    """Send rejection email via Brevo SMTP"""
+    """Send rejection email via Brevo API"""
     print(f"[EMAIL] Attempting to send rejection email to: {email} for org: {org_name}")
     
-    msg = MIMEMultipart()
-    msg['From'] = settings.MAIL_FROM
-    msg['To'] = email
-    msg['Subject'] = "Relivo Organization Application Update"
-
+    # Brevo API endpoint
+    url = "https://api.brevo.com/v3/smtp/email"
+    
     # Build the reason section if provided
     reason_section = ""
     if rejection_reason and rejection_reason.strip():
@@ -77,7 +93,7 @@ def send_rejection_email(email: str, org_name: str, rejection_reason: str = None
         </div>
         """
 
-    body = f"""
+    html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
         <h2 style="color: #d9534f;">Application Status Update</h2>
         <p>Thank you for your interest in joining the Relivo platform.</p>
@@ -90,16 +106,40 @@ def send_rejection_email(email: str, org_name: str, rejection_reason: str = None
         <p style="margin-top: 15px; font-size: 0.9em; color: #666;">Best regards,<br>The Relivo Team</p>
     </div>
     """
-    msg.attach(MIMEText(body, 'html'))
+    
+    payload = {
+        "sender": {
+            "name": "Relivo Admin",
+            "email": settings.MAIL_FROM
+        },
+        "to": [
+            {
+                "email": email
+            }
+        ],
+        "subject": "Relivo Organization Application Update",
+        "htmlContent": html_content
+    }
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": settings.MAIL_PASSWORD,  # Brevo API key
+        "content-type": "application/json"
+    }
 
     try:
-        print(f"[EMAIL] Connecting to SMTP server for rejection email")
-        with smtplib.SMTP(settings.MAIL_SERVER, settings.MAIL_PORT) as server:
-            server.starttls()
-            server.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
-            server.send_message(msg)
-        print(f"[EMAIL] ✓ Rejection email sent successfully to {email}")
-        return True
+        print(f"[EMAIL] Sending via Brevo API to: {email}")
+        import requests
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        
+        if response.status_code in [200, 201]:
+            print(f"[EMAIL] ✓ Rejection email sent successfully to {email}")
+            print(f"[EMAIL] Response: {response.json()}")
+            return True
+        else:
+            print(f"[EMAIL] ✗ Failed to send email. Status: {response.status_code}")
+            print(f"[EMAIL] Response: {response.text}")
+            return False
     except Exception as e:
         print(f"[EMAIL] ✗ Error sending rejection email to {email}: {str(e)}")
         import traceback
