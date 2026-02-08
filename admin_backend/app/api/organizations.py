@@ -1,12 +1,9 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-import secrets
-import string
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import bcrypt
 import os
 
 from db import models
@@ -20,8 +17,8 @@ router = APIRouter(
     tags=["organizations"]
 )
 
-def send_approval_email(email: str, password: str):
-    """Send approval email with credentials via Brevo SMTP"""
+def send_approval_email(email: str):
+    """Send approval email notification via Brevo SMTP"""
     msg = MIMEMultipart()
     msg['From'] = settings.MAIL_FROM
     msg['To'] = email
@@ -31,16 +28,12 @@ def send_approval_email(email: str, password: str):
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
         <h2 style="color: #17463a;">Congratulations!</h2>
         <p>Your organization has been approved by the Relivo Admin team.</p>
-        <p>You can now log in to the Organization Portal using the credentials below:</p>
-        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #eee;">
-            <p style="margin: 5px 0;"><strong>Username:</strong> {email}</p>
-            <p style="margin: 5px 0;"><strong>Password:</strong> <span style="font-family: monospace; font-size: 1.2em; color: #17463a;">{password}</span></p>
-        </div>
-        <p style="color: #d9534f; font-weight: bold;">⚠️ Important: You will be required to change your password upon your first login.</p>
+        <p>You can now log in to the Organization Portal and start accessing grant opportunities.</p>
         <div style="margin-top: 30px;">
-            <a href="http://localhost:8000/login" style="background: #17463a; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Login</a>
+            <a href="https://relivo-org-web.vercel.app/" style="background: #17463a; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Login</a>
         </div>
-        <p style="margin-top: 25px; font-size: 0.9em; color: #666;">If you have any questions, please reply to this email.</p>
+        <p style="margin-top: 25px; font-size: 0.9em; color: #666;">If you have any questions, please contact our support team at <a href="mailto:muthukrishnan8733@gmail.com">muthukrishnan8733@gmail.com</a></p>
+        <p style="margin-top: 15px; font-size: 0.9em; color: #666;">Best regards,<br>The Relivo Team</p>
     </div>
     """
     msg.attach(MIMEText(body, 'html'))
@@ -54,22 +47,33 @@ def send_approval_email(email: str, password: str):
     except Exception as e:
         print(f"Error sending approval email: {e}")
 
-def send_rejection_email(email: str, org_name: str):
+def send_rejection_email(email: str, org_name: str, rejection_reason: str = None):
     """Send rejection email via Brevo SMTP"""
     msg = MIMEMultipart()
     msg['From'] = settings.MAIL_FROM
     msg['To'] = email
     msg['Subject'] = "Relivo Organization Application Update"
 
+    # Build the reason section if provided
+    reason_section = ""
+    if rejection_reason and rejection_reason.strip():
+        reason_section = f"""
+        <div style="background: #ffe6e6; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #d9534f;">
+            <p style="margin: 0 0 8px 0; color: #721c24; font-weight: bold;">Reason for rejection:</p>
+            <p style="margin: 0; color: #721c24;">{rejection_reason}</p>
+        </div>
+        """
+
     body = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
         <h2 style="color: #d9534f;">Application Status Update</h2>
         <p>Thank you for your interest in joining the Relivo platform.</p>
         <p>After careful review, we regret to inform you that your organization application for <strong>{org_name}</strong> has not been approved at this time.</p>
+        {reason_section}
         <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
             <p style="margin: 0; color: #856404;">If you believe this decision was made in error or would like to reapply with additional information, please contact our support team.</p>
         </div>
-        <p style="margin-top: 25px; font-size: 0.9em; color: #666;">If you have any questions, please reply to this email or contact our support team.</p>
+        <p style="margin-top: 25px; font-size: 0.9em; color: #666;">For support, please contact: <a href="mailto:muthukrishnan8733@gmail.com">muthukrishnan8733@gmail.com</a></p>
         <p style="margin-top: 15px; font-size: 0.9em; color: #666;">Best regards,<br>The Relivo Team</p>
     </div>
     """
@@ -107,50 +111,44 @@ def approve_organization(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(deps.get_current_admin_user)
 ):
-    """Approve organization, generate password, and send email"""
+    """Approve organization and send notification email"""
     org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     
-    # Generate random 8-char password
-    alphabet = string.ascii_letters + string.digits
-    password = ''.join(secrets.choice(alphabet) for i in range(8))
-    
-    # Hash password using app security utility
-    from app.core import security
-    hashed_password = security.get_password_hash(password)
-    
     org.status = "approved"
-    org.password = hashed_password
-    org.must_change_password = True
     
-    # Also update the associated User account's password
+    # Update the associated User account
     user = db.query(models.User).filter(models.User.id == org.user_id).first()
     if user:
-        user.hashed_password = hashed_password
         user.is_active = True
         user.role = "organization"
     
     db.commit()
     
-    # Send email in background
-    background_tasks.add_task(send_approval_email, org.contact_email, password)
+    # Send approval email in background
+    background_tasks.add_task(send_approval_email, org.contact_email)
     
-    return {"message": "Organization approved and credentials sent", "email": org.contact_email}
+    return {"message": "Organization approved and notification sent", "email": org.contact_email}
 
 @router.post("/admin/{org_id}/reject")
 def reject_organization(
     org_id: int,
+    rejection_data: dict,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(deps.get_current_admin_user)
 ):
-    """Reject organization and send notification email"""
+    """Reject organization and send notification email with reason"""
     org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     
+    # Get rejection reason from request body
+    rejection_reason = rejection_data.get("reason", "")
+    
     org.status = "rejected"
+    org.rejection_reason = rejection_reason
     
     # Also update the associated User account
     user = db.query(models.User).filter(models.User.id == org.user_id).first()
@@ -159,8 +157,8 @@ def reject_organization(
     
     db.commit()
     
-    # Send rejection email in background
-    background_tasks.add_task(send_rejection_email, org.contact_email, org.name)
+    # Send rejection email in background with reason
+    background_tasks.add_task(send_rejection_email, org.contact_email, org.name, rejection_reason)
     
     return {"message": "Organization rejected and notification sent", "email": org.contact_email}
 

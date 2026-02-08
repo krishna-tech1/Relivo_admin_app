@@ -27,6 +27,7 @@ class Organization(OrganizationBase):
     id: int
     user_id: int
     verification_documents: Optional[Any] = None
+    rejection_reason: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 

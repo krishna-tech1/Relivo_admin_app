@@ -272,7 +272,7 @@ class AuthService {
     }
   }
 
-  Future<void> rejectOrganization(int orgId) async {
+  Future<void> rejectOrganization(int orgId, {String? reason}) async {
     final token = await getToken();
     if (token == null) throw Exception("No token found");
 
@@ -282,6 +282,9 @@ class AuthService {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
       },
+      body: jsonEncode({
+        "reason": reason ?? "",
+      }),
     );
 
     if (response.statusCode != 200) {

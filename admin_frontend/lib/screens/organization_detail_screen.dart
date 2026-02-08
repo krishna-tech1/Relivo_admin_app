@@ -175,6 +175,8 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
   }
 
   Future<void> _handleRejection({bool isSuspend = false}) async {
+    final TextEditingController reasonController = TextEditingController();
+    
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -226,11 +228,50 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                   ],
                 ),
               ),
+              if (!isSuspend) ...[
+                const SizedBox(height: 20),
+                Text(
+                  'Rejection Reason (Optional)',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.darkGray,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'e.g., Insufficient documentation, incomplete information...',
+                    hintStyle: GoogleFonts.inter(
+                      color: AppTheme.mediumGray,
+                      fontSize: 13,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppTheme.mediumGray.withOpacity(0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppTheme.mediumGray.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppTheme.error, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: AppTheme.offWhite,
+                    contentPadding: const EdgeInsets.all(12),
+                  ),
+                  style: GoogleFonts.inter(fontSize: 14),
+                ),
+              ],
               const SizedBox(height: 12),
               Text(
                 isSuspend 
                   ? 'The organization can be re-approved later from this screen.'
-                  : 'Note: This action is permanent and the organization will be notified.',
+                  : 'Note: This action is permanent and the organization will be notified via email.',
                 style: GoogleFonts.inter(
                   color: AppTheme.mediumGray,
                   fontSize: 12,
@@ -242,7 +283,10 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () {
+              reasonController.dispose();
+              Navigator.pop(context, false);
+            },
             child: Text(
               'Cancel',
               style: GoogleFonts.inter(color: AppTheme.mediumGray, fontWeight: FontWeight.w600),
@@ -263,11 +307,17 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      reasonController.dispose();
+      return;
+    }
+
+    final rejectionReason = reasonController.text.trim();
+    reasonController.dispose();
 
     setState(() => _isLoading = true);
     try {
-      await _authService.rejectOrganization(widget.organization.id);
+      await _authService.rejectOrganization(widget.organization.id, reason: rejectionReason);
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
