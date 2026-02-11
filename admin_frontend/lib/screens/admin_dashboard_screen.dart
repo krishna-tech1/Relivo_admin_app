@@ -726,7 +726,8 @@ class _GrantsTab extends StatelessWidget {
                             icon: const Icon(Icons.more_vert_rounded, size: 22, color: AppTheme.mediumGray),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             itemBuilder: (context) => [
-                              const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_rounded, size: 18), SizedBox(width: 8), Text('Edit')])),
+                              if (grant.creatorType != 'Organization')
+                                const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_rounded, size: 18), SizedBox(width: 8), Text('Edit')])),
                               const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_rounded, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
                             ],
                             onSelected: (val) {
