@@ -332,8 +332,9 @@ class _GrantEditorScreenState extends State<GrantEditorScreen> {
                 },
                 child: InputDecorator(
                   decoration: const InputDecoration(
-                    labelText: 'Deadline',
+                    labelText: 'Deadline *',
                     prefixIcon: Icon(Icons.calendar_today),
+                    helperText: 'Deadline is required for all grants',
                   ),
                   child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
                 ),

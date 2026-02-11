@@ -160,6 +160,11 @@ class GrantsGovImporter:
         if close_date_str:
             deadline = self._parse_date(close_date_str)
         
+        # If no deadline found, set default to 90 days from now
+        if deadline is None:
+            from datetime import timedelta
+            deadline = datetime.now() + timedelta(days=90)
+        
         # Extract eligibility
         eligibility = get_text(opportunity_element, 'EligibilityCategory') or \
                      get_text(opportunity_element, 'ApplicantEligibility') or \
@@ -178,7 +183,7 @@ class GrantsGovImporter:
             'organizer': organizer[:200],
             'description': description[:2000] if description else None,
             'eligibility': eligibility[:1000] if eligibility else None,
-            'deadline': deadline,
+            'deadline': deadline,  # Now always has a value
             'apply_url': apply_url,
             'amount': amount[:100] if amount else None,
             'source': 'grants.gov',

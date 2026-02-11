@@ -28,7 +28,7 @@ def send_approval_email(email: str):
         <p>Your organization has been approved by the Relivo Admin team.</p>
         <p>You can now log in to the Organization Portal and start accessing grant opportunities.</p>
         <div style="margin-top: 30px;">
-            <a href="https://relivo-org-web.vercel.app/" style="background: #17463a; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Login</a>
+            <a href="https://relivo-org-web.vercel.app/login" style="background: #17463a; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Login</a>
         </div>
         <p style="margin-top: 25px; font-size: 0.9em; color: #666;">If you have any questions, please contact our support team at <a href="mailto:muthukrishnan8733@gmail.com">muthukrishnan8733@gmail.com</a></p>
         <p style="margin-top: 15px; font-size: 0.9em; color: #666;">Best regards,<br>The Relivo Team</p>

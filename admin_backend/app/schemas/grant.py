@@ -7,7 +7,7 @@ class GrantBase(BaseModel):
     organizer: str  # Renamed from provider
     description: Optional[str] = None
     eligibility: Optional[str] = None  # Text description
-    deadline: Optional[datetime] = None
+    deadline: datetime  # Required field - admin must set deadline
     apply_url: str
     category: Optional[str] = "General"
     
