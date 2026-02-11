@@ -41,6 +41,7 @@ class Grant(Base):
     description = Column(Text, nullable=True)  # Use Text for long content
     eligibility = Column(Text, nullable=True)  # Text description of eligibility
     apply_url = Column(String(500), nullable=False)
+    category = Column(String(100), nullable=True, index=True) # Housing, Education, etc.
     
     # Source & Tracking
     source = Column(String(50), default="manual", index=True)  # "manual" or "grants.gov"

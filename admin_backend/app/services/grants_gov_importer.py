@@ -184,8 +184,32 @@ class GrantsGovImporter:
             'source': 'grants.gov',
             'is_verified': False,
             'is_active': True,
+            'category': self._detect_category(title, description, organizer, eligibility),
             'refugee_country': None
         }
+
+    def _detect_category(self, title, description, organizer, eligibility) -> str:
+        """Detect category from text content"""
+        text = f"{title or ''} {description or ''} {organizer or ''} {eligibility or ''}".lower()
+        
+        if any(w in text for w in ['housing', 'shelter', 'accommodation']):
+            return 'Housing'
+        elif any(w in text for w in ['education', 'training', 'school', 'university', 'curriculum']):
+            return 'Education'
+        elif any(w in text for w in ['health', 'medical', 'healthcare', 'disease', 'vaccine']):
+            return 'Healthcare'
+        elif any(w in text for w in ['employment', 'job', 'business', 'entrepreneur', 'work']):
+            return 'Employment'
+        elif any(w in text for w in ['legal', 'reunification', 'asylum', 'rights', 'justice']):
+            return 'Legal'
+        elif any(w in text for w in ['emergency', 'urgent', 'crisis', 'disaster']):
+            return 'Emergency'
+        elif any(w in text for w in ['food', 'nutrition', 'agriculture', 'hunger']):
+            return 'Food'
+        elif any(w in text for w in ['social', 'community', 'integration', 'belonging']):
+            return 'Social'
+            
+        return 'General'
     
     def _parse_date(self, date_str: str) -> datetime:
         """Parse date string to datetime object"""

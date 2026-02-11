@@ -9,6 +9,7 @@ class GrantBase(BaseModel):
     eligibility: Optional[str] = None  # Text description
     deadline: Optional[datetime] = None
     apply_url: str
+    category: Optional[str] = "General"
     
     # Optional fields
     amount: Optional[str] = None
@@ -36,6 +37,7 @@ class GrantUpdate(BaseModel):
     eligibility: Optional[str] = None
     deadline: Optional[datetime] = None
     apply_url: Optional[str] = None
+    category: Optional[str] = None
     amount: Optional[str] = None
     location: Optional[str] = None
     eligibility_criteria: Optional[List[str]] = None

@@ -27,10 +27,24 @@ class _GrantEditorScreenState extends State<GrantEditorScreen> {
   
   List<String> _eligibilityCriteria = [];
   List<String> _requiredDocuments = [];
+  String _selectedCategory = 'General';
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 30));
   bool _isLoading = false;
 
   final _grantService = GrantService();
+
+  static const List<String> _categories = [
+    'General',
+    'Housing',
+    'Education',
+    'Healthcare',
+    'Employment',
+    'Legal',
+    'Emergency',
+    'Food',
+    'Social',
+    'Other',
+  ];
 
   @override
   void initState() {
@@ -41,6 +55,7 @@ class _GrantEditorScreenState extends State<GrantEditorScreen> {
     _descCtrl = TextEditingController(text: widget.grant?.description ?? '');
     _locationCtrl = TextEditingController(text: widget.grant?.country ?? '');
     _applyUrlCtrl = TextEditingController(text: widget.grant?.applyUrl ?? '');
+    _selectedCategory = widget.grant?.category ?? 'General';
     
     if (widget.grant != null) {
       _selectedDate = widget.grant!.deadline;
@@ -71,7 +86,7 @@ class _GrantEditorScreenState extends State<GrantEditorScreen> {
         title: _titleCtrl.text,
         organizer: _providerCtrl.text,
         country: _locationCtrl.text,
-        category: 'General',
+        category: _selectedCategory,
         deadline: _selectedDate,
         amount: _amountCtrl.text,
         description: _descCtrl.text,
@@ -263,6 +278,27 @@ class _GrantEditorScreenState extends State<GrantEditorScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                decoration: const InputDecoration(
+                  labelText: 'Category *',
+                  prefixIcon: Icon(Icons.category_rounded),
+                ),
+                items: _categories.map((String category) {
+                  return DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() => _selectedCategory = newValue);
+                  }
+                },
+                validator: (v) => v == null ? 'Required' : null,
               ),
               const SizedBox(height: 16),
 
