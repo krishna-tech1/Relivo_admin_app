@@ -7,7 +7,7 @@ class GrantBase(BaseModel):
     organizer: str  # Renamed from provider
     description: Optional[str] = None
     eligibility: Optional[str] = None  # Text description
-    deadline: datetime  # Required field - admin must set deadline
+    deadline: Optional[datetime] = None  # Optional for response (handles NULL in DB)
     apply_url: str
     category: Optional[str] = "General"
     
@@ -27,7 +27,7 @@ class GrantBase(BaseModel):
     external_id: Optional[str] = None
 
 class GrantCreate(GrantBase):
-    pass
+    deadline: datetime  # Required field - admin must set deadline when creating
 
 class GrantUpdate(BaseModel):
     """Partial update schema - all fields optional"""

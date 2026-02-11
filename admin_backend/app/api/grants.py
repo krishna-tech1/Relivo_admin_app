@@ -390,6 +390,55 @@ def migrate_schema(
         }
 
 
+@router.post("/admin/fix-null-deadlines")
+def fix_null_deadlines(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_admin_user)
+):
+    """
+    Fix grants with NULL deadlines by setting them to a default date (admin only).
+    Sets NULL deadlines to 30 days from now.
+    """
+    from datetime import datetime, timedelta
+    from sqlalchemy import text
+    
+    try:
+        # Count grants with NULL deadlines
+        null_deadline_count = db.query(models.Grant).filter(
+            models.Grant.deadline == None
+        ).count()
+        
+        if null_deadline_count == 0:
+            return {
+                "message": "No grants with NULL deadlines found.",
+                "fixed": 0
+            }
+        
+        # Set default deadline to 30 days from now
+        default_deadline = datetime.now() + timedelta(days=30)
+        
+        # Update grants with NULL deadlines
+        db.execute(
+            text("UPDATE grants SET deadline = :deadline WHERE deadline IS NULL"),
+            {"deadline": default_deadline}
+        )
+        
+        db.commit()
+        
+        return {
+            "message": f"Successfully fixed {null_deadline_count} grants with NULL deadlines",
+            "fixed": null_deadline_count,
+            "default_deadline": default_deadline.isoformat()
+        }
+        
+    except Exception as e:
+        db.rollback()
+        return {
+            "error": f"Failed to fix NULL deadlines: {str(e)}",
+            "message": "Please check the error and try again."
+        }
+
+
 @router.post("/admin/seed")
 def seed_database(
     db: Session = Depends(get_db),
