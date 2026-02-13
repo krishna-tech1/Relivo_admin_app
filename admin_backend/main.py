@@ -41,7 +41,7 @@ app.include_router(grants.router)
 from app.api import organizations
 app.include_router(organizations.router)
 
-@app.get("/", methods=["GET", "HEAD"])
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {
         "message": "Refugee App Backend is running",
@@ -49,7 +49,7 @@ async def root():
         "status": "healthy"
     }
 
-@app.get("/health", methods=["GET", "HEAD"])
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check():
     """Health check endpoint"""
     try:
