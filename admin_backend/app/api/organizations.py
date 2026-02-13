@@ -256,6 +256,12 @@ def reactivate_organization(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     
-    org.status = "ACTIVE"
+    org.status = "approved"
+    
+    # Also update the associated User account
+    user = db.query(models.User).filter(models.User.id == org.user_id).first()
+    if user:
+        user.is_active = True
+    
     db.commit()
     return {"message": "Organization reactivated"}

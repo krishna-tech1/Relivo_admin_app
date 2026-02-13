@@ -28,7 +28,7 @@ class GrantDetailScreen extends StatelessWidget {
                 gradient: AppTheme.primaryGradient,
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                    color: AppTheme.primaryBlue.withOpacity(0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -177,7 +177,7 @@ class GrantDetailScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppTheme.success.withValues(alpha: 0.1),
+                              color: AppTheme.success.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
                               border: Border.all(color: AppTheme.success),
                             ),
@@ -322,7 +322,7 @@ class GrantDetailScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusLarge),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.4),
+              color: AppTheme.primaryBlue.withOpacity(0.4),
               blurRadius: 16,
               offset: const Offset(0, 8),
             ),

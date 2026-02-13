@@ -153,28 +153,30 @@ class GrantService {
   // Note: Backend JSON keys might differ slightly, adjusting here.
   Grant _fromJson(Map<String, dynamic> json) {
     return Grant(
-      id: json['id'].toString(),
-      title: json['title'],
-      organizer: json['organizer'] ?? json['provider'] ?? 'Unknown',
-      country: json['refugee_country'] ?? json['location'] ?? 'Unknown',
+      id: (json['id'] ?? '').toString(),
+      title: json['title'] ?? 'Untitled Grant',
+      organizer: (json['organizer'] ?? json['provider'] ?? 'Unknown Organization').toString(),
+      country: (json['refugee_country'] ?? json['location'] ?? 'Global').toString(),
       category: json['category'] ?? _detectCategory(json['title'], json['description'], json['organizer']),
-      deadline: json['deadline'] != null ? DateTime.parse(json['deadline']) : DateTime.now().add(const Duration(days: 30)),
-      amount: json['amount'] ?? '',
-      description: json['description'] ?? '',
+      deadline: json['deadline'] != null 
+          ? DateTime.tryParse(json['deadline']) ?? DateTime.now().add(const Duration(days: 30))
+          : DateTime.now().add(const Duration(days: 30)),
+      amount: (json['amount'] ?? '').toString(),
+      description: (json['description'] ?? 'No description available').toString(),
       eligibilityCriteria: json['eligibility_criteria'] != null 
           ? List<String>.from(json['eligibility_criteria']) 
-          : (json['eligibility'] != null ? [json['eligibility']] : []),
+          : (json['eligibility'] != null ? [json['eligibility'].toString()] : []),
       requiredDocuments: json['required_documents'] != null 
           ? List<String>.from(json['required_documents']) 
           : [],
-      isVerified: json['is_verified'] ?? true, 
+      isVerified: json['is_verified'] ?? false, 
       isUrgent: false,
-      applyUrl: json['apply_url'] ?? '',
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
+      applyUrl: (json['apply_url'] ?? '').toString(),
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
       creatorId: json['creator_id'],
       organizationId: json['organization_id'],
-      creatorRole: json['creator_role'],
-      source: json['source'] ?? 'manual',
+      creatorRole: json['creator_role']?.toString(),
+      source: (json['source'] ?? 'manual').toString(),
     );
   }
 
