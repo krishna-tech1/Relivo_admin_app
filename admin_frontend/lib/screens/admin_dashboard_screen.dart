@@ -307,14 +307,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               decoration: const BoxDecoration(
                 gradient: AppTheme.adminGradient,
                 boxShadow: [
-                  BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 2)),
+                  BoxShadow(color: Colors.black45, blurRadius: 15, offset: Offset(0, 4)),
                 ],
               ),
               padding: EdgeInsets.fromLTRB(
-                AppConstants.paddingMedium, 
-                MediaQuery.of(context).padding.top + 16, 
-                AppConstants.paddingMedium, 
-                AppConstants.paddingMedium
+                AppConstants.paddingLarge, 
+                MediaQuery.of(context).padding.top + 20, 
+                AppConstants.paddingLarge, 
+                AppConstants.paddingLarge
               ),
               child: Column(
                 children: [
@@ -443,25 +443,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     children: [
                       Expanded(
                         child: _StatCard(
-                          icon: Icons.verified,
-                          label: 'Verified',
+                          icon: Icons.verified_rounded,
+                          label: 'VERIFIED',
                           value: '${_verifiedGrants.length}',
+                          color: AppTheme.success,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: _StatCard(
-                          icon: Icons.pending,
-                          label: 'Unverified',
+                          icon: Icons.pending_actions_rounded,
+                          label: 'PENDING',
                           value: '${_unverifiedGrants.length}',
+                          color: AppTheme.warning,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: _StatCard(
-                          icon: Icons.business,
-                          label: 'Organizations',
+                          icon: Icons.business_center_rounded,
+                          label: 'ORGS',
                           value: '${_organizations.length}',
+                          color: AppTheme.primaryColor,
                         ),
                       ),
                     ],
@@ -564,26 +567,30 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             border: Border(
               bottom: BorderSide(
                 color: isSelected ? AppTheme.primaryColor : Colors.transparent,
-                width: 3.5,
+                width: 4,
               ),
             ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon, 
-                color: isSelected ? AppTheme.primaryColor : AppTheme.mediumGray.withOpacity(0.7), 
-                size: 24
+              AnimatedScale(
+                scale: isSelected ? 1.1 : 1.0,
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  icon, 
+                  color: isSelected ? AppTheme.primaryColor : AppTheme.mediumGray.withOpacity(0.4), 
+                  size: 26
+                ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
                 label.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
-                  color: isSelected ? AppTheme.primaryColor : AppTheme.mediumGray.withOpacity(0.7),
-                  letterSpacing: 0.5,
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                  color: isSelected ? AppTheme.primaryColor : AppTheme.mediumGray.withOpacity(0.5),
+                  letterSpacing: 1.2,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -600,24 +607,63 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final Color color;
 
-  const _StatCard({required this.icon, required this.label, required this.value});
+  const _StatCard({
+    required this.icon, 
+    required this.label, 
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Icon(icon, color: AppTheme.white, size: 20),
-          const SizedBox(height: 6),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.white), maxLines: 1, overflow: TextOverflow.ellipsis),
-          Text(label, style: TextStyle(fontSize: 10, color: AppTheme.white.withOpacity(0.8)), overflow: TextOverflow.ellipsis, maxLines: 1),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value, 
+            style: GoogleFonts.inter(
+              fontSize: 22, 
+              fontWeight: FontWeight.w900, 
+              color: Colors.white,
+            ), 
+            maxLines: 1, 
+            overflow: TextOverflow.ellipsis
+          ),
+          Text(
+            label, 
+            style: GoogleFonts.inter(
+              fontSize: 9, 
+              fontWeight: FontWeight.w700,
+              color: Colors.white70,
+              letterSpacing: 1.2,
+            ), 
+            overflow: TextOverflow.ellipsis, 
+            maxLines: 1
+          ),
         ],
       ),
     );

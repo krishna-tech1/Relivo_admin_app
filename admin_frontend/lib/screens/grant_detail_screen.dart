@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:admin_frontend/screens/grant_editor_screen.dart';
 import 'package:admin_frontend/services/grant_service.dart';
@@ -25,32 +26,34 @@ class GrantDetailScreen extends StatelessWidget {
             // Header
             Container(
               decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
+                gradient: AppTheme.adminGradient,
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primaryBlue.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              padding: const EdgeInsets.all(AppConstants.paddingMedium),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(
-                      Icons.arrow_back,
+                      Icons.arrow_back_ios_new_rounded,
                       color: AppTheme.white,
+                      size: 20,
                     ),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Grant Details',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                      'GRANT DETAILS',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
                         color: AppTheme.white,
+                        letterSpacing: 2,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -165,10 +168,11 @@ class GrantDetailScreen extends StatelessWidget {
                           // Title
                           Text(
                             grant.title,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
+                            style: GoogleFonts.inter(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
                               color: AppTheme.darkGray,
+                              height: 1.2,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -557,11 +561,12 @@ class _SectionCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                  title.toUpperCase(),
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
                     color: AppTheme.darkGray,
+                    letterSpacing: 1.5,
                   ),
                 ),
               ),

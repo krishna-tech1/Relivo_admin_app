@@ -41,9 +41,6 @@ class _GrantEditorScreenState extends State<GrantEditorScreen> {
     'Employment',
     'Legal',
     'Emergency',
-    'Food',
-    'Social',
-    'Other',
   ];
 
   @override

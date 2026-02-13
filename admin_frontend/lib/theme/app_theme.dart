@@ -43,32 +43,42 @@ class AppTheme {
   static const Color warning = Color(0xFFF59E0B); // Amber 500
   static const Color error = Color(0xFFEF4444);
 
-  // Gradients
+  // Premium Gradients
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)], // Blue 500 to Blue 700
+    colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)], // Rich Blue
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    stops: [0.0, 1.0],
   );
   
   static const LinearGradient adminGradient = LinearGradient(
-    colors: [Color(0xFF1E293B), Color(0xFF0F172A)], // Slate 800 to Slate 900
+    colors: [Color(0xFF0F172A), Color(0xFF1E293B)], // Deep Slate
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  // Decorations
+  static const LinearGradient glassGradient = LinearGradient(
+    colors: [Color(0x1AFFFFFF), Color(0x05FFFFFF)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // Modern Shadows & Decorations
   static BoxDecoration cardDecoration = BoxDecoration(
     color: white,
     borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
     boxShadow: [
       BoxShadow(
-        color: Color(0x0D000000), // Black with ~5% opacity (cleaner hex)
-        blurRadius: 12,
-        offset: const Offset(0, 4),
-        spreadRadius: 0,
+        color: const Color(0xFF64748B).withOpacity(0.08),
+        blurRadius: 20,
+        offset: const Offset(0, 8),
       ),
     ],
+  );
+
+  static BoxDecoration glassDecoration = BoxDecoration(
+    color: Colors.white.withOpacity(0.1),
+    borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
+    border: Border.all(color: Colors.white.withOpacity(0.2)),
   );
 
   static ThemeData get lightTheme {

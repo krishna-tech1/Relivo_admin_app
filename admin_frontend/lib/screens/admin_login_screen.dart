@@ -98,42 +98,58 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         Column(
                           children: [
                             Container(
+                              padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 20,
-                                    spreadRadius: 1,
-                                  ),
-                                ],
+                                border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
                               ),
-                              child: ClipOval(
-                                child: Image.asset(
-                                  'assets/images/logo.png',
-                                  width: 110,
-                                  height: 110,
-                                  fit: BoxFit.cover,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 30,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    'assets/images/logo.png',
+                                    width: 120,
+                                    height: 120,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 24),
                             Text(
                               'RELIVO ADMIN',
                               style: GoogleFonts.inter(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w800,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w900,
                                 color: Colors.white,
-                                letterSpacing: 2,
+                                letterSpacing: 3,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Secure Administrative Access',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: Colors.white.withOpacity(0.7),
-                                letterSpacing: 0.5,
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                              ),
+                              child: Text(
+                                'SECURE PORTAL',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white.withOpacity(0.8),
+                                  letterSpacing: 1.5,
+                                ),
                               ),
                             ),
                           ],
@@ -145,15 +161,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                           child: Container(
                             constraints: const BoxConstraints(maxWidth: 400),
                             width: double.infinity,
-                            padding: const EdgeInsets.all(28),
+                            padding: const EdgeInsets.all(32),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(24),
+                              borderRadius: BorderRadius.circular(32),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.25),
-                                  blurRadius: 25,
-                                  offset: const Offset(0, 10),
+                                  color: Colors.black.withOpacity(0.4),
+                                  blurRadius: 40,
+                                  offset: const Offset(0, 20),
                                 ),
                               ],
                             ),
@@ -162,23 +178,28 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Text(
-                                    'Sign In',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.secondaryColor,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 4,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.primaryColor,
+                                          borderRadius: BorderRadius.circular(2),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        'Administrator Sign In',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppTheme.secondaryColor,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Enter your credentials to continue',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      color: AppTheme.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 28),
+                                  const SizedBox(height: 32),
                                   CustomTextField(
                                     label: 'Admin Email',
                                     hint: 'Enter your email',

@@ -40,24 +40,29 @@ class _CustomTextFieldState extends State<CustomTextField> {
       children: [
         Text(
           widget.label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF475569), // Slate 600
+            letterSpacing: 0.2,
+          ),
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: widget.controller,
           obscureText: _obscureText,
           keyboardType: widget.keyboardType,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
           validator: widget.validator,
           decoration: InputDecoration(
             hintText: widget.hint,
+            hintStyle: TextStyle(color: Colors.grey.withOpacity(0.5), fontSize: 14),
             suffixIcon: widget.isPassword
                 ? IconButton(
                     icon: Icon(
-                      _obscureText ? Icons.visibility_off : Icons.visibility,
-                      color: Theme.of(context).colorScheme.secondary,
+                      _obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                      color: const Color(0xFF64748B),
+                      size: 20,
                     ),
                     onPressed: () {
                       setState(() {
